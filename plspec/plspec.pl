@@ -17,17 +17,28 @@ setup_check(Location,A,B) :-
     setup_check_aux(A,Location,B).
 
 setup_check_aux(any,_,_) :- !.
+%% the following two checks should be done instantly (?)
+setup_check_aux(ground,_,X) :- !,
+    ground(X).
+setup_check_aux(nonvar,_,X) :- !,
+    nonvar(X).
 setup_check_aux(Spec,Location,Var) :-
     when(nonvar(Var),check(Spec,Location,Var)).
 
+check(var, _, _) :- fail. % vars should never be bound
 check([_],_,[]) :- !.
-check([X],Location,[H|T]) :- !,
-    maplist(setup_check(Location,X),[H|T]).
+check([X],Location,[H|T]) :-
+    maplist(setup_check(Location,X),[H|T]), !.
 check(compound(TCompound), Location, VCompound) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
-    VCompound =.. [TFunctor|VArgs], !,
-    maplist(setup_check(Location), TArgs, VArgs).
+    VCompound =.. [TFunctor|VArgs],
+    maplist(setup_check(Location), TArgs, VArgs), !.
+check(atom,_,X) :-
+    atom(X), !.
+check(TTuple, Location, VTuple) :-
+    TTuple =.. [tuple|TArgs],
+    maplist(setup_check(Location), TArgs, VTuple), !.
 
 
 check(T,Location,V) :-
@@ -53,11 +64,16 @@ cond_is_true(ground,A) :- !,
     ground(A).
 cond_is_true(var,A) :- !,
     var(A).
+cond_is_true(atom,A) :- !,
+    atom(A).
 cond_is_true(compound(TCompound), VCompound) :- !,
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs],
     maplist(cond_is_true, TArgs, VArgs).
+cond_is_true(TTuple, VTuple) :-
+    TTuple =.. [tuple|TArgs], !,
+    maplist(cond_is_true, TArgs, VTuple).
 
 
 :- begin_tests(cond_is_true).
@@ -102,6 +118,12 @@ test(compounds) :-
     \+ cond_is_true(compound(foo(any, any)), foo(a)),
     cond_is_true(compound(foo(any, any)), foo(a, a)),
     \+ cond_is_true(compound(foo(any, var)), foo(a, a)).
+
+test(tuples) :-
+    cond_is_true(tuple(any), [_]),
+    \+ cond_is_true(tuple(any), []),
+    \+ cond_is_true(tuple(any), [_, _]),
+    cond_is_true(tuple(any, any), [_, _]).
 
 :- end_tests(cond_is_true).
 
