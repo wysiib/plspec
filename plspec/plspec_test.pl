@@ -36,8 +36,8 @@ test(not_conform, [throws(_)]) :-
 
 
 
-:- plspec:spec_pre(my_compound_foo/1, [foo(any)]).
-:- plspec:spec_post(my_compound_foo/1, [foo(ground)], [foo(ground)]).
+:- plspec:spec_pre(my_compound_foo/1, [compound(foo(any))]).
+:- plspec:spec_post(my_compound_foo/1, [compound(foo(ground))], [compound(foo(ground))]).
 my_compound_foo(foo(_)).
 
 

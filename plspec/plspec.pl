@@ -23,7 +23,7 @@ setup_check_aux(Spec,Location,Var) :-
 check([_],_,[]) :- !.
 check([X],Location,[H|T]) :- !,
     maplist(setup_check(Location,X),[H|T]).
-check(TCompound, Location, VCompound) :-
+check(compound(TCompound), Location, VCompound) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs], !,
@@ -53,8 +53,8 @@ cond_is_true(ground,A) :- !,
     ground(A).
 cond_is_true(var,A) :- !,
     var(A).
-cond_is_true(TCompound, VCompound) :-
-    compound(TCompound), !, compound(VCompound),
+cond_is_true(compound(TCompound), VCompound) :- !,
+    compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs],
     maplist(cond_is_true, TArgs, VArgs).
@@ -96,12 +96,12 @@ test(list_of_list) :-
     cond_is_true([[any]], [[]]).
 
 test(compounds) :-
-    cond_is_true(foo(any), foo(_)),
-    cond_is_true(foo(any), foo(a)),
-    \+ cond_is_true(foo(any), bar(a)),
-    \+ cond_is_true(foo(any, any), foo(a)),
-    cond_is_true(foo(any, any), foo(a, a)),
-    \+ cond_is_true(foo(any, var), foo(a, a)).
+    cond_is_true(compound(foo(any)), foo(_)),
+    cond_is_true(compound(foo(any)), foo(a)),
+    \+ cond_is_true(compound(foo(any)), bar(a)),
+    \+ cond_is_true(compound(foo(any, any)), foo(a)),
+    cond_is_true(compound(foo(any, any)), foo(a, a)),
+    \+ cond_is_true(compound(foo(any, var)), foo(a, a)).
 
 :- end_tests(cond_is_true).
 
