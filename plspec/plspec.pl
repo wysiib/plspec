@@ -33,14 +33,61 @@ check_posts(Args,Posts) :-
 check_posts(_,_) :-
     throw(['radong','postcondition violated']).
 
-cond_is_true(any,_).
-cond_is_true([X],A) :-
+cond_is_true(any,_) :- !.
+cond_is_true([X],A) :- !,
     nonvar(A),
     maplist(cond_is_true(X),A).
-cond_is_true(ground,A) :-
+cond_is_true(ground,A) :- !,
     ground(A).
-cond_is_true(var,A) :-
+cond_is_true(var,A) :- !,
     var(A).
+
+:- begin_tests(cond_is_true).
+
+test(any) :-
+    cond_is_true(any, _),
+    cond_is_true(any, 1),
+    cond_is_true(any, []),
+    cond_is_true(any, foo(_, _)),
+    cond_is_true(any, foo).
+
+test(ground) :-
+    \+ cond_is_true(ground, _),
+    cond_is_true(ground, 1),
+    cond_is_true(ground, []),
+    \+ cond_is_true(ground, foo(_, _)),
+    cond_is_true(ground, foo(1, 2)),
+    cond_is_true(ground, foo).
+
+test(list) :-
+    \+ cond_is_true([any], _),
+    cond_is_true([any], []),
+    cond_is_true([any], [a]),
+    cond_is_true([any], [1]),
+    cond_is_true([any], [_]),
+    cond_is_true([any], [[]]),
+    cond_is_true([any], [any]).
+
+test(list_of_list) :-
+    \+ cond_is_true([[any]], _),
+    \+ cond_is_true([[any]], [a]),
+    \+ cond_is_true([[any]], [_]),
+    cond_is_true([[any]], []),
+    cond_is_true([[any]], [[1]]),
+    cond_is_true([[any]], [[a]]),
+    cond_is_true([[any]], [[]]).
+
+test(compounds) :-
+    cond_is_true(foo(any), foo(_)),
+    cond_is_true(foo(any), foo(a)),
+    \+ cond_is_true(foo(any), bar(a)),
+    \+ cond_is_true(foo(any, any), foo(a)),
+    cond_is_true(foo(any, any), foo(a, a)),
+    \+ cond_is_true(foo(any, var), foo(a, a)).
+
+:- end_tests(cond_is_true).
+
+
 
 do_expand((A:-B),(A:-NB)) :-
     expand_body(B,NB).
