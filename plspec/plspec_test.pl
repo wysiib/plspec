@@ -36,3 +36,21 @@ test(not_conform, [throws(_)]) :-
 
 
 
+:- plspec:spec_pre(my_compound_foo/1, [foo(any)]).
+:- plspec:spec_post(my_compound_foo/1, [foo(ground)], [foo(ground)]).
+my_compound_foo(foo(_)).
+
+
+
+:- begin_tests(my_compound_foo).
+
+test(conform_call) :-
+    my_compound_foo(foo(_)).
+
+test(conform_call2) :-
+    my_compound_foo(foo(1)).
+
+test(not_conform, [throws(_)]) :-
+    my_compound_foo(bar(_)).
+
+:- end_tests(my_compound_foo).

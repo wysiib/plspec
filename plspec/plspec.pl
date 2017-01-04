@@ -3,10 +3,15 @@
 
 :- dynamic le_spec_pre/2, le_spec_post/3.
 
+%% set up facts
+
 spec_pre(Pred,PreSpec) :-
     assert(le_spec_pre(Pred,PreSpec)).
 spec_post(Pred,PreSpec,PostSpec) :-
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
+
+
+%% check magic
 
 setup_check(Location,A,B) :-
     setup_check_aux(A,Location,B).
@@ -18,6 +23,13 @@ setup_check_aux(Spec,Location,Var) :-
 check([_],_,[]) :- !.
 check([X],Location,[H|T]) :- !,
     maplist(setup_check(Location,X),[H|T]).
+check(TCompound, Location, VCompound) :-
+    compound(TCompound), compound(VCompound),
+    TCompound =.. [TFunctor|TArgs],
+    VCompound =.. [TFunctor|VArgs], !,
+    maplist(setup_check(Location), TArgs, VArgs).
+
+
 check(T,Location,V) :-
     throw(['radong','expected',T,'but got',V,'in',Location]).
 
@@ -41,6 +53,12 @@ cond_is_true(ground,A) :- !,
     ground(A).
 cond_is_true(var,A) :- !,
     var(A).
+cond_is_true(TCompound, VCompound) :-
+    compound(TCompound), !, compound(VCompound),
+    TCompound =.. [TFunctor|TArgs],
+    VCompound =.. [TFunctor|VArgs],
+    maplist(cond_is_true, TArgs, VArgs).
+
 
 :- begin_tests(cond_is_true).
 
@@ -88,6 +106,8 @@ test(compounds) :-
 :- end_tests(cond_is_true).
 
 
+
+%% term expansion
 
 do_expand((A:-B),(A:-NB)) :-
     expand_body(B,NB).
