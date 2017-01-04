@@ -148,8 +148,8 @@ expand_body({A},{NA}) :- !,
 expand_body(A,NA) :-
     functor(A,F,Arity),
     le_spec_pre(F/Arity,PreSpec), !,
-    findall(PreSpec,le_spec_post(A,PreSpec,_),PreSpecs),
-    findall(PostSpec,le_spec_post(A,_,PostSpec),PostSpecs),
+    findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PreSpecs),
+    findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
     body_expansion(A,PreSpec,PreSpecs,PostSpecs,NA).
 expand_body(A,A).
 
