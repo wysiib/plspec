@@ -79,3 +79,24 @@ test(nonconform_both_var, [throws(_)]) :-
     my_tuple_with_incorrect_spec([_, _]).
 
 :- end_tests(my_tuple).
+
+
+:- plspec:spec_pre(atom_member/2, [atom, [atom]]).
+atom_member(X, [X|_]) :- !.
+atom_member(X, [_|T]) :-
+    atom_member(X, T).
+
+:- begin_tests(atom_member).
+
+test(conform, [nondet]) :-
+    atom_member(a, [a,b,c]).
+
+test(should_be_conform) :-
+    atom_member(a, X), !,
+    X = [a,b,c].
+
+test(should_be_conform2, [nondet]) :-
+    atom_member(a, [a, _|_]).
+
+:- end_tests(atom_member).
+
