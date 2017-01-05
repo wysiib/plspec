@@ -32,27 +32,28 @@ setup_check_aux(Spec,Location,Var,R) :-
     when(nonvar(Var),check(Spec,Location,Var,R)).
 
 
-check(var, L, X, false(Reason)) :- reason(var, L, X, Reason), !. % vars should never be bound
+check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
-check([X],Location,[H|T], true) :-
-    maplist(setup_check(Location, true,X),[H|T]), !.
-check([X],Location,[H|T], false(Reason)) :- reason([X], Location, [H|T], Reason), !.
+check([X],Location,[H|T], R) :-
+    maplist(setup_check(Location, true,X),[H|T]), !, R = true.
+check([X],Location,[H|T], Res) :- reason([X], Location, [H|T], Reason), !, Res = false(Reason).
 
-check(compound(TCompound), Location, VCompound, true) :-
+check(compound(TCompound), Location, VCompound, Res) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs],
-    maplist(setup_check(Location, true), TArgs, VArgs), !.
-check(compound(TCompound), Location, VCompound, false(Reason)) :-
-    reason(compound(TCompound), Location, VCompound, Reason), !.
+    maplist(setup_check(Location, true), TArgs, VArgs), !,
+    Res = true.
+check(compound(TCompound), Location, VCompound, Res) :-
+    reason(compound(TCompound), Location, VCompound, Reason), !, Res = false(Reason).
 
 check(atom,_,X, Res) :- atom(X), !, Res = true.
-check(atom,Location,X, false(Reason)) :- reason(atom, Location, X, Reason).
+check(atom,Location,X, Res) :- reason(atom, Location, X, Reason), !, Res = false(Reason).
 
-check(TTuple, Location, VTuple, true) :-
+check(TTuple, Location, VTuple, Res) :-
     TTuple =.. [tuple|TArgs],
-    maplist(setup_check(Location, true), TArgs, VTuple), !.
+    maplist(setup_check(Location, true), TArgs, VTuple), !, Res = true.
 check(TTuple, Location, VTuple, Result) :-
     TTuple =.. [tuple|_], !,  reason(TTuple, Location, VTuple, Reason), Result = false(Reason), !.
 
