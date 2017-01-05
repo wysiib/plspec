@@ -2,4 +2,6 @@ before_script:
   - sudo apt-get -qq update
   - sudo apt-get install -y swi-prolog
 
-script: cd plspec && make tests
+script:
+  - cd plspec
+  - make tests
