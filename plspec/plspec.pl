@@ -83,7 +83,8 @@ check(T,Location,V, Result) :-
     Result = false(Reason).
 
 reason(T, Location, V, Reason) :-
-    Reason = ['radong','expected',T,'but got',V,'in',Location].
+    copy_term(Location, LocationWithoutAttributes, _Goals),
+    Reason = ['radong','expected',T,'but got',V,'in',LocationWithoutAttributes].
 
 
 which_pres([],[],_,[]).

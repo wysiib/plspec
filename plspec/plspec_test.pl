@@ -96,7 +96,11 @@ test(should_be_conform) :-
     X = [a,b,c].
 
 test(should_be_conform2, [nondet]) :-
-    atom_member(a, [a, _|_]).
+    atom_member(a, [a,_|_]).
+
+test(should_fail, [throws(_)]) :-
+    atom_member(a, [1,_|_]).
+
 
 :- end_tests(atom_member).
 
