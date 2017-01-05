@@ -1,5 +1,5 @@
 :- module(plspec,[spec_pre/2,spec_post/3,
-                  setup_check/3,which_pres/4,check_posts/2]).
+                  setup_uber_check/3,which_pres/4,check_posts/2]).
 
 :- dynamic le_spec_pre/2, le_spec_post/3.
 
@@ -12,37 +12,56 @@ spec_post(Pred,PreSpec,PostSpec) :-
 
 
 %% check magic
+setup_uber_check(Location,A,B) :-
+    setup_check(Location,Res,A,B),
+    freeze(Res, (Res == true) -> true ; throw(Res)).
 
-setup_check(Location,A,B) :-
-    setup_check_aux(A,Location,B).
+setup_check(Location,Res,A,B) :-
+    setup_check_aux(A,Location,B,Res).
 
-setup_check_aux(any,_,_) :- !.
+setup_check_aux(any,_,_,true) :- !.
+
 %% the following two checks should be done instantly (?)
-setup_check_aux(ground,_,X) :- !,
-    ground(X).
-setup_check_aux(nonvar,_,X) :- !,
-    nonvar(X).
-setup_check_aux(Spec,Location,Var) :-
-    when(nonvar(Var),check(Spec,Location,Var)).
+setup_check_aux(ground,_,X,true) :- ground(X), !.
+setup_check_aux(ground,Location,V,false(Reason)) :- reason(ground, Location, V, Reason), !.
 
-check(var, _, _) :- fail. % vars should never be bound
-check([_],_,[]) :- !.
-check([X],Location,[H|T]) :-
-    maplist(setup_check(Location,X),[H|T]), !.
-check(compound(TCompound), Location, VCompound) :-
+setup_check_aux(nonvar,_,X,true) :- nonvar(X), !.
+setup_check_aux(nonvar,Location,V,false(Reason)) :- reason(nonvar, Location, V, Reason), !.
+
+setup_check_aux(Spec,Location,Var,R) :-
+    when(nonvar(Var),check(Spec,Location,Var,R)).
+
+
+check(var, L, X, false(Reason)) :- reason(var, L, X, Reason), !. % vars should never be bound
+
+check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
+check([X],Location,[H|T], true) :-
+    maplist(setup_check(Location, true,X),[H|T]), !.
+check([X],Location,[H|T], false(Reason)) :- reason([X], Location, [H|T], Reason), !.
+
+check(compound(TCompound), Location, VCompound, true) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs],
-    maplist(setup_check(Location), TArgs, VArgs), !.
-check(atom,_,X) :-
-    atom(X), !.
-check(TTuple, Location, VTuple) :-
+    maplist(setup_check(Location, true), TArgs, VArgs), !. 
+check(compound(TCompound), Location, VCompound, false(Reason)) :-
+    reason(compound(TCompound), Location, VCompound, Reason), !.
+
+check(atom,_,X, true) :- atom(X), !.
+check(atom,Location,X, false(Reason)) :- reason(atom, Location, X, Reason).
+
+check(TTuple, Location, VTuple, true) :-
     TTuple =.. [tuple|TArgs],
-    maplist(setup_check(Location), TArgs, VTuple), !.
+    maplist(setup_check(Location, true), TArgs, VTuple), !. 
+check(TTuple, Location, VTuple, false(Reason)) :-
+    TTuple =.. [tuple|_], !, reason(TTuple, Location, VTuple, Reason), !.
 
+check(T,Location,V, false(Reason)) :-
+    reason(T, Location, V, Reason).
 
-check(T,Location,V) :-
-    throw(['radong','expected',T,'but got',V,'in',Location]).
+reason(T, Location, V, Reason) :-
+    Reason = ['radong','expected',T,'but got',V,'in',Location].
+
 
 which_pres([],[],_,[]).
 which_pres([Pre|Pres],[Post|Posts],Args,[Post|T]) :-
@@ -136,7 +155,7 @@ do_expand((A:-B),(A:-NB)) :-
 
 body_expansion(Body,PreSpec,PreSpecs,PostSpecs,NewBody) :-
     Body =.. [_|Args],
-    NewBody = (maplist(plspec:setup_check(Body),PreSpec,Args),
+    NewBody = (maplist(plspec:setup_uber_check(Body),PreSpec,Args),
                plspec:which_pres(PreSpecs,PostSpecs,Args,PostsToCheck),
                Body,
                maplist(plspec:check_posts(Args),PostsToCheck)).
