@@ -43,21 +43,22 @@ check(compound(TCompound), Location, VCompound, true) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs],
-    maplist(setup_check(Location, true), TArgs, VArgs), !. 
+    maplist(setup_check(Location, true), TArgs, VArgs), !.
 check(compound(TCompound), Location, VCompound, false(Reason)) :-
     reason(compound(TCompound), Location, VCompound, Reason), !.
 
-check(atom,_,X, true) :- atom(X), !.
+check(atom,_,X, Res) :- atom(X), !, Res = true.
 check(atom,Location,X, false(Reason)) :- reason(atom, Location, X, Reason).
 
 check(TTuple, Location, VTuple, true) :-
     TTuple =.. [tuple|TArgs],
-    maplist(setup_check(Location, true), TArgs, VTuple), !. 
-check(TTuple, Location, VTuple, false(Reason)) :-
-    TTuple =.. [tuple|_], !, reason(TTuple, Location, VTuple, Reason), !.
+    maplist(setup_check(Location, true), TArgs, VTuple), !.
+check(TTuple, Location, VTuple, Result) :-
+    TTuple =.. [tuple|_], !,  reason(TTuple, Location, VTuple, Reason), Result = false(Reason), !.
 
-check(T,Location,V, false(Reason)) :-
-    reason(T, Location, V, Reason).
+check(T,Location,V, Result) :-
+    reason(T, Location, V, Reason),
+    Result = false(Reason).
 
 reason(T, Location, V, Reason) :-
     Reason = ['radong','expected',T,'but got',V,'in',Location].
