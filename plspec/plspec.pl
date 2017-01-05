@@ -32,19 +32,39 @@ setup_check_aux(Spec,Location,Var,R) :-
     when(nonvar(Var),check(Spec,Location,Var,R)).
 
 
+both_eventually_true(V1, V2, Res) :-
+    when((nonvar(V1); nonvar(V2)),
+          (nonvar(V1), V1 = true -> freeze(V2, Res = V2) %% look at the other co-routined variable
+         ; nonvar(V1) -> Res = V1 %% since it is not true
+         ; nonvar(V2), V2 = true -> freeze(V1, Res = V1)
+         ; nonvar(V2) -> Res = V2)).
+
+
+recursive_check_list([], _, _, true).
+recursive_check_list([HA|TA], T, Location, R) :-
+    setup_check(Location, ResElement, T, HA),
+    freeze(TA, recursive_check_list(TA, T, Location, ResTail)),
+    both_eventually_true(ResElement, ResTail, R).
+
+recursive_check_tuple([], [], _, true).
+recursive_check_tuple([HT|TT], [HA|TA], Location, R) :-
+    setup_check(Location, ResElement,HT, HA),
+    freeze(TA, recursive_check_tuple(TT, TA, Location, ResTail)),
+    both_eventually_true(ResElement, ResTail, R).
+
+
 check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
 check([X],Location,[H|T], R) :-
-    maplist(setup_check(Location, true,X),[H|T]), !, R = true.
+    recursive_check_list([H|T], X, Location, R).
 check([X],Location,[H|T], Res) :- reason([X], Location, [H|T], Reason), !, Res = false(Reason).
 
 check(compound(TCompound), Location, VCompound, Res) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
-    VCompound =.. [TFunctor|VArgs],
-    maplist(setup_check(Location, true), TArgs, VArgs), !,
-    Res = true.
+    VCompound =.. [TFunctor|VArgs], !,
+    recursive_check_tuple(TArgs, VArgs, Location, Res).
 check(compound(TCompound), Location, VCompound, Res) :-
     reason(compound(TCompound), Location, VCompound, Reason), !, Res = false(Reason).
 
@@ -52,8 +72,9 @@ check(atom,_,X, Res) :- atom(X), !, Res = true.
 check(atom,Location,X, Res) :- reason(atom, Location, X, Reason), !, Res = false(Reason).
 
 check(TTuple, Location, VTuple, Res) :-
-    TTuple =.. [tuple|TArgs],
-    maplist(setup_check(Location, true), TArgs, VTuple), !, Res = true.
+    TTuple =.. [tuple|TArgs], length(TArgs, L), length(VTuple, L),
+    recursive_check_tuple(TArgs, VTuple, Location, FutureRes), !,
+    freeze(FutureRes, Res = FutureRes).
 check(TTuple, Location, VTuple, Result) :-
     TTuple =.. [tuple|_], !,  reason(TTuple, Location, VTuple, Reason), Result = false(Reason), !.
 
