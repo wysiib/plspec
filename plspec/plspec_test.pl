@@ -104,3 +104,45 @@ test(should_fail, [throws(_)]) :-
 
 :- end_tests(atom_member).
 
+
+:- plspec:spec_pre(my_atomic/1, [one_of(atom, [atom])]).
+my_atomic([_|_]) :- !, fail.
+my_atomic(_).
+
+:- begin_tests(my_atomic).
+
+test(conform) :-
+    my_atomic([]).
+
+test(conform2) :-
+    \+ my_atomic([foo]).
+
+test(conform3) :-
+    my_atomic(foo).
+
+test(not_conform, [throws(_)]) :-
+    my_atomic(2).
+
+test(not_conform2, [throws(_)]) :-
+    my_atomic(foo(_)).
+
+test(conform4) :-
+    \+ my_atomic([_]).
+
+test(not_conform3, [throws(_)]) :-
+    my_atomic([2]).
+
+test(not_conform4, [throws(_)]) :-
+    \+ my_atomic([X]), X = 2.
+
+:- end_tests(my_atomic).
+
+
+not_my_atomic(X) :-
+    \+ my_atomic(X).
+
+if_atom_then_my_atomic(X) :-
+    (atom(X) -> my_atomic(X)).
+
+if_my_atomic_then_atom(X) :-
+    (my_atomic(X) -> atom(X)).

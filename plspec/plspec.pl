@@ -53,6 +53,15 @@ recursive_check_tuple([HT|TT], [HA|TA], Location, R) :-
     both_eventually_true(ResElement, ResTail, R).
 
 
+
+setup_one_of([], V, Acc, OrigPattern, Location, UberVar) :-
+    freeze(Acc, Acc == fail -> (reason(OrigPattern, Location, V, Reason), UberVar = false(Reason)) ; true).
+setup_one_of([H|T], V, Prior, OrigPattern, Location, UberVar) :-
+    setup_check(Location, ResOption, H, V),
+    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
+    setup_one_of(T, V, Current, OrigPattern, Location, UberVar).
+
+
 check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
@@ -77,6 +86,15 @@ check(TTuple, Location, VTuple, Res) :-
     freeze(FutureRes, Res = FutureRes).
 check(TTuple, Location, VTuple, Result) :-
     TTuple =.. [tuple|_], !,  reason(TTuple, Location, VTuple, Reason), Result = false(Reason), !.
+
+check(TOneOf, Location, V, Res) :-
+    TOneOf =.. [one_of|TArgs],
+    setup_one_of(TArgs, V, [], TOneOf, Location, FutureRes), !,
+    freeze(FutureRes, Res = FutureRes).
+check(TOneOf, Location, V, Res) :-
+    TOneOf =.. [one_of|_],
+    reason(TOneOf, Location, V, Reason), !,
+    Res = false(Reason).
 
 check(T,Location,V, Result) :-
     reason(T, Location, V, Reason),
