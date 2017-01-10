@@ -177,23 +177,35 @@ test(tuples) :-
 do_expand((A:-B),(A:-NB)) :-
     expand_body(B,NB).
 
-body_expansion(Body,PreSpec,PreSpecs,PostSpecs,NewBody) :-
+body_expansion(Body,Goal,PreSpec,PreSpecs,PostSpecs,NewBody) :-
     Body =.. [_|Args],
     NewBody = (maplist(plspec:setup_uber_check(Body),PreSpec,Args),
                plspec:which_pres(PreSpecs,PostSpecs,Args,PostsToCheck),
-               Body,
+               Goal,
                maplist(plspec:check_posts(Args),PostsToCheck)).
+
+should_expand(A, F, Arity, PreSpec) :-
+    functor(A,F,Arity),
+    le_spec_pre(F/Arity,PreSpec).
 
 expand_body((A,B),(NA,NB)) :- !,
   expand_body(A,NA), expand_body(B,NB).
 expand_body({A},{NA}) :- !,
   expand_body(A,NA).
-expand_body(A,NA) :-
-    functor(A,F,Arity),
-    le_spec_pre(F/Arity,PreSpec), !,
+expand_body((A -> B), (NA -> NB)) :- !,
+  expand_body(A, NA), expand_body(B, NB).
+expand_body((\+ A), NA) :-
+    should_expand(A, F, Arity, PreSpec), !,
     findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PreSpecs),
     findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
-    body_expansion(A,PreSpec,PreSpecs,PostSpecs,NA).
+    body_expansion(A,(\+ A),PreSpec,PreSpecs,PostSpecs,NA).
+expand_body((\+ A), (\+ NA)) :-
+    expand_body(A, NA).
+expand_body(A,NA) :-
+    should_expand(A, F, Arity, PreSpec), !,
+    findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PreSpecs),
+    findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
+    body_expansion(A,A,PreSpec,PreSpecs,PostSpecs,NA).
 expand_body(A,A).
 
 :- multifile term_expansion/2.
