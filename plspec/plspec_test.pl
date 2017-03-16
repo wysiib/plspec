@@ -20,13 +20,14 @@ test(instantiated_call, [nondet]) :-
 test(partly_instantiated, [nondet]) :-
     my_member(_, [a, b, c]).
 
-test(partly_instantiated2, [nondet]) :-
+test(partly_instantiated_not_conform, [nondet, throws(_)]) :-
+    % second argument is not a list
     my_member(a, _).
 
 test(partly_instantiated3, [nondet]) :-
     my_member(c, [a, _, c]).
 
-test(all_variables, [nondet]) :-
+test(all_variables_not_conform, [nondet, throws(_)]) :-
     my_member(_, _).
 
 test(not_conform, [throws(_)]) :-
@@ -36,7 +37,9 @@ test(not_conform, [throws(_)]) :-
 
 
 
-:- plspec:spec_pre(my_compound_foo/1, [compound(foo(any))]).
+%% multiple pres
+:- plspec:spec_pre(my_compound_foo/1, [compound(foo(int))]).
+:- plspec:spec_pre(my_compound_foo/1, [compound(foo(atom))]).
 :- plspec:spec_post(my_compound_foo/1, [compound(foo(ground))], [compound(foo(ground))]).
 my_compound_foo(foo(_)).
 
@@ -44,11 +47,14 @@ my_compound_foo(foo(_)).
 
 :- begin_tests(my_compound_foo).
 
-test(conform_call) :-
+test(nonconform_call, [throws(_)]) :-
     my_compound_foo(foo(_)).
 
-test(conform_call2) :-
+test(conform_call1) :-
     my_compound_foo(foo(1)).
+
+test(conform_call2) :-
+    my_compound_foo(foo(bar)).
 
 test(not_conform, [throws(_)]) :-
     my_compound_foo(bar(_)).
@@ -69,10 +75,10 @@ bar(A) :-
 test(conform) :-
     my_tuple_with_incorrect_spec([a, a]).
 
-test(conform_var) :-
+test(conform_var, [throws(_)]) :-
     my_tuple_with_incorrect_spec([a, _]).
 
-test(conform_var2) :-
+test(conform_var2, [throws(_)]) :-
     my_tuple_with_incorrect_spec([_, a]).
 
 test(nonconform_both_var, [throws(_)]) :-
@@ -86,19 +92,20 @@ atom_member(X, [X|_]) :- !.
 atom_member(X, [_|T]) :-
     atom_member(X, T).
 
+
 :- begin_tests(atom_member).
 
 test(conform, [nondet]) :-
     atom_member(a, [a,b,c]).
 
-test(should_be_conform) :-
+test(not_conform, [throws(_)]) :-
     atom_member(a, X), !,
     X = [a,b,c].
 
-test(should_be_conform2, [nondet]) :-
+test(not_conform2, [throws(_)]) :-
     atom_member(a, [a,_|_]).
 
-test(should_fail, [throws(_)]) :-
+test(not_conform3, [throws(_)]) :-
     atom_member(a, [1,_|_]).
 
 
@@ -126,13 +133,13 @@ test(not_conform, [throws(_)]) :-
 test(not_conform2, [throws(_)]) :-
     my_atomic(foo(_)).
 
-test(conform4) :-
+test(not_conform3, [throws(_)]) :-
     \+ my_atomic([_]).
 
-test(not_conform3, [throws(_)]) :-
+test(not_conform4, [throws(_)]) :-
     my_atomic([2]).
 
-test(not_conform4, [throws(_)]) :-
+test(not_conform5, [throws(_)]) :-
     \+ my_atomic([X]), X = 2.
 
 :- end_tests(my_atomic).
@@ -146,3 +153,35 @@ if_atom_then_my_atomic(X) :-
 
 if_my_atomic_then_atom(X) :-
     (my_atomic(X) -> atom(X)).
+
+
+:- plspec:spec_pre(my_or_test/1, [one_of(ground, ground)]).
+my_or_test(_).
+
+:- begin_tests(my_or_test).
+
+test(conform) :-
+    my_or_test(foo).
+
+test(nonconform, [throws(_)]) :-
+    my_or_test(_).
+
+:- end_tests(my_or_test).
+
+
+:- plspec:spec_pre(my_and_test/1, [and(atom, ground)]).
+my_and_test(_).
+
+:- begin_tests(my_and_test).
+
+test(conform) :-
+    my_and_test(foo).
+
+test(nonconform, [throws(_)]) :-
+    my_and_test([]).
+
+test(nonconform2, [throws(_)]) :-
+    my_and_test(_).
+
+:- end_tests(my_and_test).
+

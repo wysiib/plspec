@@ -1,12 +1,15 @@
 :- module(plspec,[spec_pre/2,spec_post/3,
-                  setup_uber_check/3,which_pres/4,check_posts/2]).
+                  setup_uber_check/3,which_posts/4,check_posts/2,
+                  some/2, error_not_matching_any_pre/3]).
 
-:- dynamic le_spec_pre/2, le_spec_post/3.
+:- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_post/3.
 
 %% set up facts
 
 spec_pre(Pred,PreSpec) :-
     assert(le_spec_pre(Pred,PreSpec)).
+spec_invariant(Pred, InvariantSpec) :-
+    assert(le_spec_invariant(Pred, InvariantSpec)).
 spec_post(Pred,PreSpec,PostSpec) :-
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
 
@@ -53,6 +56,12 @@ recursive_check_tuple([HT|TT], [HA|TA], Location, R) :-
     both_eventually_true(ResElement, ResTail, R).
 
 
+setup_and([], _, _, _).
+setup_and([H|T], V, Location, UberVar) :-
+    setup_check(Location, ResMustBe, H, V),
+    freeze(ResMustBe, ((ResMustBe == true ; nonvar(UberVar)) -> true ; reason(H, Location, V, Reason), UberVar = false(Reason))),
+    setup_and(T, V, Location, UberVar).
+
 
 setup_one_of([], V, Acc, OrigPattern, Location, UberVar) :-
     freeze(Acc, Acc == fail -> (reason(OrigPattern, Location, V, Reason), UberVar = false(Reason)) ; true).
@@ -80,6 +89,9 @@ check(compound(TCompound), Location, VCompound, Res) :-
 check(atom,_,X, Res) :- atom(X), !, Res = true.
 check(atom,Location,X, Res) :- reason(atom, Location, X, Reason), !, Res = false(Reason).
 
+check(number,_,X, Res) :- number(X), !, Res = true.
+check(number,Location,X, Res) :- reason(number, Location, X, Reason), !, Res = false(Reason).
+
 check(TTuple, Location, VTuple, Res) :-
     TTuple =.. [tuple|TArgs], length(TArgs, L), length(VTuple, L),
     recursive_check_tuple(TArgs, VTuple, Location, FutureRes), !,
@@ -96,6 +108,16 @@ check(TOneOf, Location, V, Res) :-
     reason(TOneOf, Location, V, Reason), !,
     Res = false(Reason).
 
+check(TAnd, Location, V, Res) :-
+    TAnd =.. [and|TArgs],
+    setup_and(TArgs, V, Location, Res), !,
+    freeze(FutureRes, Res = FutureRes).
+check(TAnd, Location, V, Res) :-
+    TAnd =.. [and|_],
+    reason(TAnd, Location, V, Reason), !,
+    Res = false(Reason).
+
+
 check(T,Location,V, Result) :-
     reason(T, Location, V, Reason),
     Result = false(Reason).
@@ -105,12 +127,12 @@ reason(T, Location, V, Reason) :-
     Reason = ['radong','expected',T,'but got',V,'in',LocationWithoutAttributes].
 
 
-which_pres([],[],_,[]).
-which_pres([Pre|Pres],[Post|Posts],Args,[Post|T]) :-
+which_posts([],[],_,[]).
+which_posts([Pre|Pres],[Post|Posts],Args,[Post|T]) :-
     maplist(cond_is_true,Pre,Args), !,
-    which_pres(Pres,Posts,Args,T).
-which_pres([_|Pres],[_|Posts],Args,T) :-
-    which_pres(Pres,Posts,Args,T).
+    which_posts(Pres,Posts,Args,T).
+which_posts([_|Pres],[_|Posts],Args,T) :-
+    which_posts(Pres,Posts,Args,T).
 
 check_posts(Args,Posts) :-
     maplist(cond_is_true,Posts,Args), !.
@@ -127,6 +149,8 @@ cond_is_true(var,A) :- !,
     var(A).
 cond_is_true(atom,A) :- !,
     atom(A).
+cond_is_true(int, A) :- !,
+    integer(A).
 cond_is_true(compound(TCompound), VCompound) :- !,
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
@@ -135,6 +159,15 @@ cond_is_true(compound(TCompound), VCompound) :- !,
 cond_is_true(TTuple, VTuple) :-
     TTuple =.. [tuple|TArgs], !,
     maplist(cond_is_true, TArgs, VTuple).
+cond_is_true(TOneOf, V) :-
+    TOneOf =.. [one_of|R], !,
+    some(cond_is_true1(V), R).
+cond_is_true(TAnd, V) :-
+    TAnd =.. [and|R],
+    maplist(cond_is_true1(V), R).
+
+cond_is_true1(A, B) :-
+    cond_is_true(B, A).
 
 
 :- begin_tests(cond_is_true).
@@ -191,40 +224,54 @@ test(tuples) :-
 
 
 %% term expansion
+:- meta_predicate some(1, +).
+some(Goal, List) :-
+    some1(List, Goal).
+some1([], _) :- fail.
+some1([H|_], Goal) :-
+    call(Goal,H), !.
+some1([_|T], Goal) :-
+    some1(T, Goal).
 
-do_expand((A:-B),(A:-NB)) :-
-    expand_body(B,NB).
+spec_matches(Args, Spec) :-
+    maplist(cond_is_true, Spec, Args).
 
-body_expansion(Body,Goal,PreSpec,PreSpecs,PostSpecs,NewBody) :-
-    Body =.. [_|Args],
-    NewBody = (maplist(plspec:setup_uber_check(Body),PreSpec,Args),
-               plspec:which_pres(PreSpecs,PostSpecs,Args,PostsToCheck),
+
+error_not_matching_any_pre(Functor, Args, PreSpecs) :-
+    throw(['Radong', Args, 'does not match any spec of', PreSpecs, 'in', Functor]).
+
+
+
+expansion(Head,Goal,PreSpecs,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
+    Head =.. [Functor|Args],
+    length(Args, Lenny),
+    length(NewArgs, Lenny),
+    NewHead =.. [Functor|NewArgs],
+    NewBody = (% determine if at least one precondition is fulfilled
+               (plspec:some(spec_matches(NewArgs), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
+               % unify with pattern matching of head
+               NewArgs = Args,
+               % TODO: setup coroutiness
+               % gather all matching postconditions
+               plspec:which_posts(PrePostSpecs,PostSpecs,Args,PostsToCheck),
                Goal,
                maplist(plspec:check_posts(Args),PostsToCheck)).
 
-should_expand(A, F, Arity, PreSpec) :-
+should_expand(A, F, Arity, PreSpecs) :-
     functor(A,F,Arity),
-    le_spec_pre(F/Arity,PreSpec).
+    findall(PreSpec, le_spec_pre(F/Arity,PreSpec), PreSpecs).
 
-expand_body((A,B),(NA,NB)) :- !,
-  expand_body(A,NA), expand_body(B,NB).
-expand_body({A},{NA}) :- !,
-  expand_body(A,NA).
-expand_body((A -> B), (NA -> NB)) :- !,
-  expand_body(A, NA), expand_body(B, NB).
-expand_body((\+ A), NA) :-
-    should_expand(A, F, Arity, PreSpec), !,
-    findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PreSpecs),
+expandeur(':-'(A, B), ':-'(NA, NB)) :-
+    should_expand(A, F, Arity, PreSpecs), PreSpecs \= [], !,
+    findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PrePostSpecs),
     findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
-    body_expansion(A,(\+ A),PreSpec,PreSpecs,PostSpecs,NA).
-expand_body((\+ A), (\+ NA)) :-
-    expand_body(A, NA).
-expand_body(A,NA) :-
-    should_expand(A, F, Arity, PreSpec), !,
-    findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PreSpecs),
-    findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
-    body_expansion(A,A,PreSpec,PreSpecs,PostSpecs,NA).
-expand_body(A,A).
+    expansion(A,B,PreSpecs,PrePostSpecs,PostSpecs,NA,NB).
+
+do_expand(':-'(A, B), ':-'(NA, NB)) :-
+    expandeur(':-'(A, B), ':-'(NA, NB)).
+do_expand(A, ':-'(NA, NB)) :-
+    expandeur(':-'(A, true), ':-'(NA, NB)).
+do_expand(A,A).
 
 :- multifile term_expansion/2.
 user:term_expansion(A, B) :-
