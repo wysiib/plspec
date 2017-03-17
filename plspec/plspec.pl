@@ -74,51 +74,35 @@ setup_one_of([H|T], V, Prior, OrigPattern, Location, UberVar) :-
 check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
-check([X],Location,[H|T], R) :- !, % TODO: this cut feels iffy (pk, 2017-03-17)
+check([X],Location,[H|T], R) :- !,
     recursive_check_list([H|T], X, Location, R).
-check([X],Location,[H|T], Res) :- reason([X], Location, [H|T], Reason), !, Res = false(Reason).
 
 check(compound(TCompound), Location, VCompound, Res) :-
     compound(TCompound), compound(VCompound),
     TCompound =.. [TFunctor|TArgs],
     VCompound =.. [TFunctor|VArgs], !,
     recursive_check_tuple(TArgs, VArgs, Location, Res).
-check(compound(TCompound), Location, VCompound, Res) :-
-    reason(compound(TCompound), Location, VCompound, Reason), !, Res = false(Reason).
 
 check(atom,_,X, Res) :- atom(X), !, Res = true.
-check(atom,Location,X, Res) :- reason(atom, Location, X, Reason), !, Res = false(Reason).
 
 check(number,_,X, Res) :- number(X), !, Res = true.
-check(number,Location,X, Res) :- reason(number, Location, X, Reason), !, Res = false(Reason).
 
 check(int,_,X, Res) :- integer(X), !, Res = true.
-check(int,Location,X, Res) :- reason(integer, Location, X, Reason), !, Res = false(Reason).
 
 check(TTuple, Location, VTuple, Res) :-
     TTuple =.. [tuple|TArgs], length(TArgs, L), length(VTuple, L),
     recursive_check_tuple(TArgs, VTuple, Location, FutureRes), !,
     freeze(FutureRes, Res = FutureRes).
-check(TTuple, Location, VTuple, Result) :-
-    TTuple =.. [tuple|_], !,  reason(TTuple, Location, VTuple, Reason), Result = false(Reason), !.
 
 check(TOneOf, Location, V, Res) :-
     TOneOf =.. [one_of|TArgs],
     setup_one_of(TArgs, V, [], TOneOf, Location, FutureRes), !,
     freeze(FutureRes, Res = FutureRes).
-check(TOneOf, Location, V, Res) :-
-    TOneOf =.. [one_of|_],
-    reason(TOneOf, Location, V, Reason), !,
-    Res = false(Reason).
 
 check(TAnd, Location, V, Res) :-
     TAnd =.. [and|TArgs],
     setup_and(TArgs, V, Location, Res), !,
     freeze(FutureRes, Res = FutureRes).
-check(TAnd, Location, V, Res) :-
-    TAnd =.. [and|_],
-    reason(TAnd, Location, V, Reason), !,
-    Res = false(Reason).
 
 
 check(T,Location,V, Result) :-
