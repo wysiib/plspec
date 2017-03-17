@@ -3,6 +3,7 @@
                   some/2, error_not_matching_any_pre/3]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_post/3.
+:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/2.
 
 %% set up facts
 
@@ -12,6 +13,48 @@ spec_invariant(Pred, InvariantSpec) :-
     assert(le_spec_invariant(Pred, InvariantSpec)).
 spec_post(Pred,PreSpec,PostSpec) :-
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
+
+defspec(SpecId, OtherSpec) :-
+    assert(spec_indirection(SpecId, OtherSpec)).
+:- meta_predicate defspec_pred(+, 1).
+defspec_pred(SpecId, Predicate) :-
+    assert(spec_predicate(SpecId, Predicate)).
+:- meta_predicate defspec_pred_recursive(+, 1).
+defspec_pred_recursive(SpecId, Predicate) :-
+    assert(spec_predicate_recursive(SpecId, Predicate)).
+
+
+
+spec_predicate(atom, atom).
+spec_predicate(integer, integer).
+spec_predicate(number, number).
+spec_predicate(var, var).
+% TODO: think about semantics of ground/nonvar for invariants (pk, 2017-03-17)
+spec_predicate(ground, ground).
+spec_predicate(nonvar, nonvar).
+
+spec_indirection(int, integer).
+spec_indirection([X], list(X)).
+
+spec_predicate_recursive(compound(X), compound(X)).
+spec_predicate_recursive(list(X), list(X)).
+
+
+compound(Spec, Val, NewSpecs, NewVars) :-
+    Spec =.. [Functor|NewSpecs],
+    Val =.. [Functor|NewVars].
+
+list(Spec, Val, NewSpecs, NewVals) :-
+    nonvar(Val), list1(Val, Spec, NewSpecs, NewVals).
+list1(L, Spec, [Spec|ST], [H|VT]) :-
+    nonvar(L), L = [H|T], !,
+    list1(T, Spec, ST, VT).
+list1(L, _, [], []) :-
+    nonvar(L), L = [], !.
+list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
+
+
+
 
 
 %% check coroutine magic
@@ -71,7 +114,8 @@ setup_one_of([H|T], V, Prior, OrigPattern, Location, UberVar) :-
     setup_one_of(T, V, Current, OrigPattern, Location, UberVar).
 
 
-check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
+check(Spec, _Location, Term, Reason) :-
+    cond_is_true(Spec, Term), !, Reason = true.
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
 check([X],Location,[H|T], R) :- !,
@@ -83,11 +127,6 @@ check(compound(TCompound), Location, VCompound, Res) :-
     VCompound =.. [TFunctor|VArgs], !,
     recursive_check_tuple(TArgs, VArgs, Location, Res).
 
-check(atom,_,X, Res) :- atom(X), !, Res = true.
-
-check(number,_,X, Res) :- number(X), !, Res = true.
-
-check(int,_,X, Res) :- integer(X), !, Res = true.
 
 check(TTuple, Location, VTuple, Res) :-
     TTuple =.. [tuple|TArgs], length(TArgs, L), length(VTuple, L),
@@ -127,23 +166,18 @@ check_posts(_,_) :-
     throw(['radong','postcondition violated']).
 
 
+cond_is_true(Spec, Val) :-
+    spec_predicate(Spec, Predicate), !,
+    call(Predicate, Val).
+cond_is_true(Spec, Val) :-
+    spec_predicate_recursive(Spec, Predicate), !,
+    call(Predicate, Val, NewSpecs, NewVals),
+    maplist(cond_is_true, NewSpecs, NewVals).
+cond_is_true(Spec, Val) :-
+    spec_indirection(Spec, NewSpec), !,
+    cond_is_true(NewSpec, Val).
+
 cond_is_true(any,_) :- !.
-cond_is_true([X],A) :- !,
-    nonvar(A),
-    maplist(cond_is_true(X),A).
-cond_is_true(ground,A) :- !,
-    ground(A).
-cond_is_true(var,A) :- !,
-    var(A).
-cond_is_true(atom,A) :- !,
-    atom(A).
-cond_is_true(int, A) :- !,
-    integer(A).
-cond_is_true(compound(TCompound), VCompound) :- !,
-    compound(TCompound), compound(VCompound),
-    TCompound =.. [TFunctor|TArgs],
-    VCompound =.. [TFunctor|VArgs],
-    maplist(cond_is_true, TArgs, VArgs).
 cond_is_true(TTuple, VTuple) :-
     TTuple =.. [tuple|TArgs], !,
     maplist(cond_is_true, TArgs, VTuple).
@@ -206,6 +240,9 @@ test(tuples) :-
     \+ cond_is_true(tuple(any), []),
     \+ cond_is_true(tuple(any), [_, _]),
     cond_is_true(tuple(any, any), [_, _]).
+
+test(indirection) :-
+    cond_is_true(int, 3).
 
 :- end_tests(cond_is_true).
 
