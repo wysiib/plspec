@@ -89,6 +89,42 @@ e.g. \verb|my_member/2|.
 
 \end{itemize}
 
+\section{Define Your Own Specs}
+
+Most specs are implemented as you would implement your own spec.
+Basic building blocks are created via \verb|defspec_pred/2|.
+The first argument is the name you give to your spec,
+whereas the second argument is the predicate
+that should be called in order to check the value.
+
+As an example, we might want to check whether values are floating point numbers.
+We could implement it via \verb|defspec_pred(floating_point, float)|.
+When the spec \verb|floating_point| is encounted for a value \verb|V|,
+the predicate \verb|float(V)| is called.
+
+%% TODO: even integers as an example?
+
+Furthermore, we allow aliasing via \verb|defspec|.
+Internally, the spec \verb|int| is an alias for the spec \verb|integer|.
+More complex and recursives specs are supported as well.
+
+%% TODO: trees as an example?
+
+Lastly, the most complicated type of specs are
+definitions which depend on one or more other specs,
+e.g. \verb|list(int)|.
+In order to allow checks for invariant,
+only a small aspect should be checked by a predicate,
+in this example that the value is indeed a list.
+\verb|list(X)| is implemented via \verb|defspec_recursive/2|.
+The associated predicate takes for arguments:
+firstly, the argument \verb|X| of \verb|list(X)| itself;
+secondly, the actual value.
+The third argument is a variable that should be bound to a list
+of specifications that still have to be checked on
+a list of values which is returned in the fourth argument.
+
+
 
 
 %\bibliographystyle{eptcs}
