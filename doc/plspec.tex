@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{hyperref}
 \usepackage{breakurl}
 
 \usepackage[english]{babel}
@@ -40,8 +41,57 @@
 TODO
 \end{abstract}
 
+\section{Overview}
+
+Consider following example:
+
+\begin{verbatim}
+my_member(E, [E|_]).
+my_member(E, [_|T]) :-
+    my_member(E, T).
+\end{verbatim}
+
+\emph{plspec} offers the following descriptions for predicates.
+The first argument always refers to the predicate that the spec is written for,
+e.g. \verb|my_member/2|.
+
+\begin{itemize}
+    \item
+        At least one instance of \verb|spec_pre/2|,
+        where the second argument describes a valid call of the predicate.
+        If the first argument to \verb|my_member/2| can be anything,
+        but the second one should be a list (and not a variable),
+        it would be \verb|spec_pre(my_member/2, [any, [any]])|.
+
+    \item
+        Optionally an instance of \verb|spec_invariant/2|.
+        When variables are bound,
+        they must still unify with an instance the second argument describes.
+        If a spec for \verb|my_member/2| was
+        \verb|spec_invariant(member/2, [any, atom])|,
+        then it would fail since the first clause
+        binds the second argument to a list (of variables).
+        Additionally, partial instantiation of variables is supported.
+        Consider the spec \verb|[int]|, i.e. a list of integers.
+        A variable \verb|_| is valid for this spec.
+        When it is bound to, for instance, to a list of variables,
+        e.g. \verb|[_, _]|, this value is still valid.
+        The lists \verb|[_, 2]|, \verb|[1, _]| as well as \verb|[1, 2]|
+        remain valid since they can be unified such that a ground term matches the spec.
+        However, \verb|[a, _]| is not valid.
+
+    \item
+        Any amount of instances of \verb|spec_post/3|.
+        Its second argument describes a spec
+        that may or may not be matched when calling the predicate.
+        If it was matched, however, the spec contained in the third argument
+        has to match after the predicate succeeded (if it succeeds at all).
+
+\end{itemize}
+
+
 
 %\bibliographystyle{eptcs}
-\bibliography{plspec}
+%\bibliography{plspec}
 
 \end{document}
