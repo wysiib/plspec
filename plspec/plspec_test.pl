@@ -62,8 +62,8 @@ test(not_conform, [throws(_)]) :-
 :- end_tests(my_compound_foo).
 
 
-:- plspec:spec_pre(my_tuple_with_incorrect_spec/1, [tuple(atom, atom)]).
-:- plspec:spec_post(my_tuple_with_incorrect_spec/1, [tuple(var, var)], [tuple(atom, atom)]).
+:- plspec:spec_pre(my_tuple_with_incorrect_spec/1, [tuple([atom, atom])]).
+:- plspec:spec_post(my_tuple_with_incorrect_spec/1, [tuple([var, var])], [tuple([atom, atom])]).
 my_tuple_with_incorrect_spec([X, X]).
 
 
@@ -112,7 +112,7 @@ test(not_conform3, [throws(_)]) :-
 :- end_tests(atom_member).
 
 
-:- plspec:spec_pre(my_atomic/1, [one_of(atom, [atom])]).
+:- plspec:spec_pre(my_atomic/1, [one_of([atom, [atom]])]).
 my_atomic([_|_]) :- !, fail.
 my_atomic(_).
 
@@ -155,7 +155,7 @@ if_my_atomic_then_atom(X) :-
     (my_atomic(X) -> atom(X)).
 
 
-:- plspec:spec_pre(my_or_test/1, [one_of(ground, ground)]).
+:- plspec:spec_pre(my_or_test/1, [one_of([ground, ground])]).
 my_or_test(_).
 
 :- begin_tests(my_or_test).
@@ -169,7 +169,7 @@ test(nonconform, [throws(_)]) :-
 :- end_tests(my_or_test).
 
 
-:- plspec:spec_pre(my_and_test/1, [and(atom, ground)]).
+:- plspec:spec_pre(my_and_test/1, [and([atom, ground])]).
 my_and_test(_).
 
 :- begin_tests(my_and_test).

@@ -128,18 +128,16 @@ check(compound(TCompound), Location, VCompound, Res) :-
     recursive_check_tuple(TArgs, VArgs, Location, Res).
 
 
-check(TTuple, Location, VTuple, Res) :-
-    TTuple =.. [tuple|TArgs], length(TArgs, L), length(VTuple, L),
+check(tuple(TArgs), Location, VTuple, Res) :-
+    length(TArgs, L), length(VTuple, L),
     recursive_check_tuple(TArgs, VTuple, Location, FutureRes), !,
     freeze(FutureRes, Res = FutureRes).
 
-check(TOneOf, Location, V, Res) :-
-    TOneOf =.. [one_of|TArgs],
-    setup_one_of(TArgs, V, [], TOneOf, Location, FutureRes), !,
+check(one_of(TArgs), Location, V, Res) :-
+    setup_one_of(TArgs, V, [], one_of(TArgs), Location, FutureRes), !,
     freeze(FutureRes, Res = FutureRes).
 
-check(TAnd, Location, V, Res) :-
-    TAnd =.. [and|TArgs],
+check(and(TArgs), Location, V, Res) :-
     setup_and(TArgs, V, Location, Res), !,
     freeze(FutureRes, Res = FutureRes).
 
@@ -178,14 +176,11 @@ cond_is_true(Spec, Val) :-
     cond_is_true(NewSpec, Val).
 
 cond_is_true(any,_) :- !.
-cond_is_true(TTuple, VTuple) :-
-    TTuple =.. [tuple|TArgs], !,
+cond_is_true(tuple(TArgs), VTuple) :- !,
     maplist(cond_is_true, TArgs, VTuple).
-cond_is_true(TOneOf, V) :-
-    TOneOf =.. [one_of|R], !,
+cond_is_true(one_of(R), V) :- !,
     some(cond_is_true1(V), R).
-cond_is_true(TAnd, V) :-
-    TAnd =.. [and|R],
+cond_is_true(and(R), V) :- !,
     maplist(cond_is_true1(V), R).
 
 cond_is_true1(A, B) :-
@@ -236,10 +231,10 @@ test(compounds) :-
     \+ cond_is_true(compound(foo(any, var)), foo(a, a)).
 
 test(tuples) :-
-    cond_is_true(tuple(any), [_]),
-    \+ cond_is_true(tuple(any), []),
-    \+ cond_is_true(tuple(any), [_, _]),
-    cond_is_true(tuple(any, any), [_, _]).
+    cond_is_true(tuple([any]), [_]),
+    \+ cond_is_true(tuple([any]), []),
+    \+ cond_is_true(tuple([any]), [_, _]),
+    cond_is_true(tuple([any, any]), [_, _]).
 
 test(indirection) :-
     cond_is_true(int, 3).
