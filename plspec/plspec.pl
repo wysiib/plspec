@@ -38,6 +38,8 @@ spec_indirection([X], list(X)).
 
 spec_predicate_recursive(compound(X), compound(X)).
 spec_predicate_recursive(list(X), list(X)).
+spec_predicate_recursive(and(X), and(X)).
+spec_predicate_recursive(tuple(X), tuple(X)).
 
 
 compound(Spec, Val, NewSpecs, NewVars) :-
@@ -52,6 +54,14 @@ list1(L, Spec, [Spec|ST], [H|VT]) :-
 list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
+
+
+and(SpecList, Var, SpecList, VarRepeated) :-
+    same_length(SpecList, VarRepeated),
+    maplist(=(Var), VarRepeated).
+
+tuple(SpecList, VarList, SpecList, VarList) :-
+    same_length(SpecList, VarList).
 
 
 
@@ -176,12 +186,8 @@ cond_is_true(Spec, Val) :-
     cond_is_true(NewSpec, Val).
 
 cond_is_true(any,_) :- !.
-cond_is_true(tuple(TArgs), VTuple) :- !,
-    maplist(cond_is_true, TArgs, VTuple).
 cond_is_true(one_of(R), V) :- !,
     some(cond_is_true1(V), R).
-cond_is_true(and(R), V) :- !,
-    maplist(cond_is_true1(V), R).
 
 cond_is_true1(A, B) :-
     cond_is_true(B, A).
