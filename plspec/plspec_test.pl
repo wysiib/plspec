@@ -185,3 +185,51 @@ test(nonconform2, [throws(_)]) :-
 
 :- end_tests(my_and_test).
 
+
+:- plspec:spec_pre(invariant_violator/1, [any]).
+:- plspec:spec_invariant(invariant_violator/1, [atom]).
+invariant_violator(X) :-
+    X = 1, fail.
+invariant_violator(a).
+
+:- begin_tests(invariant_violator_test).
+
+test(conform) :-
+    invariant_violator(a).
+
+test(conform2) :-
+    \+ invariant_violator(b).
+
+test(nonconform, [throws(_)]) :-
+    invariant_violator(_).
+
+:- end_tests(invariant_violator_test).
+
+:- plspec:spec_pre(partial_instantiator/1, [[any]]).
+:- plspec:spec_invariant(partial_instantiator/1, [[int]]).
+partial_instantiator([_,_]).
+partial_instantiator([1,_]).
+partial_instantiator([_,2]).
+partial_instantiator([_,a]).
+
+:- begin_tests(partial_invariant_instantiation).
+
+test(conform, [nondet]) :-
+    partial_instantiator([_,_]).
+
+test(conform2, [nondet]) :-
+    partial_instantiator([X, _]), X == 1.
+
+test(conform3, [nondet]) :-
+    partial_instantiator([_, 2]).
+
+test(conform4, [nondet]) :-
+    partial_instantiator([1, 2]).
+
+test(nonconform, [throws(_)]) :-
+    partial_instantiator([a, 2]).
+
+test(nonconform2, [throws(_)]) :-
+    findall(A, partial_instantiator(A), _).
+
+:- end_tests(partial_invariant_instantiation).

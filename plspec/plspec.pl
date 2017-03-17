@@ -14,10 +14,10 @@ spec_post(Pred,PreSpec,PostSpec) :-
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
 
 
-%% check magic
+%% check coroutine magic
 setup_uber_check(Location,A,B) :-
     setup_check(Location,Res,A,B),
-    freeze(Res, (Res == true) -> true ; throw(Res)).
+    freeze(Res, ((Res == true) -> true ; throw(Res))).
 
 setup_check(Location,Res,A,B) :-
     setup_check_aux(A,Location,B,Res).
@@ -74,7 +74,7 @@ setup_one_of([H|T], V, Prior, OrigPattern, Location, UberVar) :-
 check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
-check([X],Location,[H|T], R) :-
+check([X],Location,[H|T], R) :- !,
     recursive_check_list([H|T], X, Location, R).
 check([X],Location,[H|T], Res) :- reason([X], Location, [H|T], Reason), !, Res = false(Reason).
 
@@ -91,6 +91,9 @@ check(atom,Location,X, Res) :- reason(atom, Location, X, Reason), !, Res = false
 
 check(number,_,X, Res) :- number(X), !, Res = true.
 check(number,Location,X, Res) :- reason(number, Location, X, Reason), !, Res = false(Reason).
+
+check(int,_,X, Res) :- integer(X), !, Res = true.
+check(int,Location,X, Res) :- reason(integer, Location, X, Reason), !, Res = false(Reason).
 
 check(TTuple, Location, VTuple, Res) :-
     TTuple =.. [tuple|TArgs], length(TArgs, L), length(VTuple, L),
@@ -138,6 +141,7 @@ check_posts(Args,Posts) :-
     maplist(cond_is_true,Posts,Args), !.
 check_posts(_,_) :-
     throw(['radong','postcondition violated']).
+
 
 cond_is_true(any,_) :- !.
 cond_is_true([X],A) :- !,
@@ -242,13 +246,14 @@ error_not_matching_any_pre(Functor, Args, PreSpecs) :-
 
 
 
-expansion(Head,Goal,PreSpecs,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
+expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
     Head =.. [Functor|Args],
     length(Args, Lenny),
     length(NewArgs, Lenny),
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
                (plspec:some(spec_matches(NewArgs), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
+               (InvariantSpecOrEmpty = [InvariantSpec] -> maplist(plspec:setup_uber_check(Head),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
                % TODO: setup coroutiness
@@ -263,9 +268,10 @@ should_expand(A, F, Arity, PreSpecs) :-
 
 expandeur(':-'(A, B), ':-'(NA, NB)) :-
     should_expand(A, F, Arity, PreSpecs), PreSpecs \= [], !,
+    findall(InvSpec,le_spec_invariant(F/Arity,InvSpec),InvariantSpecOrEmpty),
     findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PrePostSpecs),
     findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
-    expansion(A,B,PreSpecs,PrePostSpecs,PostSpecs,NA,NB).
+    expansion(A,B,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NA,NB).
 
 do_expand(':-'(A, B), ':-'(NA, NB)) :-
     expandeur(':-'(A, B), ':-'(NA, NB)).
