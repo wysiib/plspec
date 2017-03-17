@@ -74,7 +74,7 @@ setup_one_of([H|T], V, Prior, OrigPattern, Location, UberVar) :-
 check(var, L, X, Res) :- reason(var, L, X, Reason), !, Res = false(Reason). % vars should never be bound
 
 check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
-check([X],Location,[H|T], R) :- !,
+check([X],Location,[H|T], R) :- !, % TODO: this cut feels iffy (pk, 2017-03-17)
     recursive_check_list([H|T], X, Location, R).
 check([X],Location,[H|T], Res) :- reason([X], Location, [H|T], Reason), !, Res = false(Reason).
 
