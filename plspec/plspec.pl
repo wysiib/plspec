@@ -20,8 +20,8 @@ defspec(SpecId, OtherSpec) :-
 defspec_pred(SpecId, Predicate) :-
     assert(spec_predicate(SpecId, Predicate)).
 :- meta_predicate defspec_pred_recursive(+, 1).
-defspec_pred_recursive(SpecId, Predicate) :-
-    assert(spec_predicate_recursive(SpecId, Predicate)).
+defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
+    assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant)).
 
 
 
@@ -29,19 +29,21 @@ spec_predicate(atom, atom).
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(var, var).
-% TODO: think about semantics of ground/nonvar for invariants (pk, 2017-03-17)
 spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
+spec_predicate(any, true).
 
 spec_indirection(int, integer).
 spec_indirection([X], list(X)).
 
-spec_predicate_recursive(compound(X), compound(X)).
-spec_predicate_recursive(list(X), list(X)).
-spec_predicate_recursive(and(X), and(X)).
-spec_predicate_recursive(tuple(X), tuple(X)).
+spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
+spec_predicate_recursive(list(X), list(X), and, and_invariant).
+spec_predicate_recursive(and(X), spec_and(X), and, and_invariant).
+spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
+spec_predicate_recursive(one_of(X), spec_and(X), or, or_invariant).
 
-
+true(_).
+%% built-in recursive specs
 compound(Spec, Val, NewSpecs, NewVars) :-
     Spec =.. [Functor|NewSpecs],
     Val =.. [Functor|NewVars].
@@ -55,8 +57,7 @@ list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
 
-
-and(SpecList, Var, SpecList, VarRepeated) :-
+spec_and(SpecList, Var, SpecList, VarRepeated) :-
     same_length(SpecList, VarRepeated),
     maplist(=(Var), VarRepeated).
 
@@ -64,7 +65,41 @@ tuple(SpecList, VarList, SpecList, VarList) :-
     same_length(SpecList, VarList).
 
 
+%% merge recursive specs
+both_eventually_true(V1, V2, Res) :-
+    when((nonvar(V1); nonvar(V2)),
+          (nonvar(V1), V1 = true -> freeze(V2, Res = V2) %% look at the other co-routined variable
+         ; nonvar(V1) -> Res = V1 %% since it is not true
+         ; nonvar(V2), V2 = true -> freeze(V1, Res = V1)
+         ; nonvar(V2) -> Res = V2)).
 
+
+invariand([], [], _, true).
+invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
+    setup_check(Location, ResElement,HSpec, HVal),
+    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)),
+    both_eventually_true(ResElement, ResTail, R).
+
+and_invariant(Specs, Vals, Location, R) :-
+    invariand(Specs, Vals, Location, R).
+
+or_invariant([], [], Acc, OrigPattern, Location, UberVar) :-
+    %% TODO: fix error message
+    freeze(Acc, Acc == fail -> (reason(OrigPattern, Location, unknown, Reason), UberVar = false(Reason)) ; true).
+or_invariant([H|T], [V|VT], Prior, OrigPattern, Location, UberVar) :-
+    setup_check(Location, ResOption, H, V),
+    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
+    or_invariant(T, VT, Current, OrigPattern, Location, UberVar).
+
+or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
+    or_invariant(NewSpecs, NewVals, [], or(NewSpecs), Location, FutureRes).
+
+and(Specs, Vals) :-
+    maplist(cond_is_true, Specs, Vals).
+or([HSpec|TSpec], [HVal|TVal]) :-
+    (cond_is_true(HSpec, HVal)
+      -> true
+      ;  or(TSpec, TVal)).
 
 
 %% check coroutine magic
@@ -75,92 +110,27 @@ setup_uber_check(Location,A,B) :-
 setup_check(Location,Res,A,B) :-
     setup_check_aux(A,Location,B,Res).
 
-setup_check_aux(any,_,_,true) :- !.
-
-%% the following two checks should be done instantly (?)
-setup_check_aux(ground,_,X,true) :- ground(X), !.
-setup_check_aux(ground,Location,V,false(Reason)) :- reason(ground, Location, V, Reason), !.
-
-setup_check_aux(nonvar,_,X,true) :- nonvar(X), !.
-setup_check_aux(nonvar,Location,V,false(Reason)) :- reason(nonvar, Location, V, Reason), !.
-
-setup_check_aux(Spec,Location,Var,R) :-
-    when(nonvar(Var),check(Spec,Location,Var,R)).
-
-
-both_eventually_true(V1, V2, Res) :-
-    when((nonvar(V1); nonvar(V2)),
-          (nonvar(V1), V1 = true -> freeze(V2, Res = V2) %% look at the other co-routined variable
-         ; nonvar(V1) -> Res = V1 %% since it is not true
-         ; nonvar(V2), V2 = true -> freeze(V1, Res = V1)
-         ; nonvar(V2) -> Res = V2)).
+setup_check_aux(Spec, Location, Val, Res) :-
+    spec_predicate(Spec, Pred), !,
+    freeze(Val, (call(Pred, Val) -> true ; reason(Spec, Location, Val, Res))).
+setup_check_aux(Spec, Location, Val, Res) :-
+    spec_indirection(Spec, OtherSpec), !,
+    setup_check_aux(OtherSpec, Location, Val, Res).
+setup_check_aux(Spec, Location, Val, Res) :-
+    spec_predicate_recursive(Spec, Pred, _MergePred, MergePredInvariant),
+    freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
+                    -> call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
+                    ;  reason(Spec, Location, Val, Res))).
 
 
-recursive_check_list([], _, _, true).
-recursive_check_list([HA|TA], T, Location, R) :-
-    setup_check(Location, ResElement, T, HA),
-    freeze(TA, recursive_check_list(TA, T, Location, ResTail)),
-    both_eventually_true(ResElement, ResTail, R).
 
-recursive_check_tuple([], [], _, true).
-recursive_check_tuple([HT|TT], [HA|TA], Location, R) :-
-    setup_check(Location, ResElement,HT, HA),
-    freeze(TA, recursive_check_tuple(TT, TA, Location, ResTail)),
-    both_eventually_true(ResElement, ResTail, R).
-
-
-setup_and([], _, _, _).
-setup_and([H|T], V, Location, UberVar) :-
-    setup_check(Location, ResMustBe, H, V),
-    freeze(ResMustBe, ((ResMustBe == true ; nonvar(UberVar)) -> true ; reason(H, Location, V, Reason), UberVar = false(Reason))),
-    setup_and(T, V, Location, UberVar).
-
-
-setup_one_of([], V, Acc, OrigPattern, Location, UberVar) :-
-    freeze(Acc, Acc == fail -> (reason(OrigPattern, Location, V, Reason), UberVar = false(Reason)) ; true).
-setup_one_of([H|T], V, Prior, OrigPattern, Location, UberVar) :-
-    setup_check(Location, ResOption, H, V),
-    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
-    setup_one_of(T, V, Current, OrigPattern, Location, UberVar).
-
-
-check(Spec, _Location, Term, Reason) :-
-    cond_is_true(Spec, Term), !, Reason = true.
-
-check([_],_,[], true) :- !. % empty lists fulfill all list specifications of any type
-check([X],Location,[H|T], R) :- !,
-    recursive_check_list([H|T], X, Location, R).
-
-check(compound(TCompound), Location, VCompound, Res) :-
-    compound(TCompound), compound(VCompound),
-    TCompound =.. [TFunctor|TArgs],
-    VCompound =.. [TFunctor|VArgs], !,
-    recursive_check_tuple(TArgs, VArgs, Location, Res).
-
-
-check(tuple(TArgs), Location, VTuple, Res) :-
-    length(TArgs, L), length(VTuple, L),
-    recursive_check_tuple(TArgs, VTuple, Location, FutureRes), !,
-    freeze(FutureRes, Res = FutureRes).
-
-check(one_of(TArgs), Location, V, Res) :-
-    setup_one_of(TArgs, V, [], one_of(TArgs), Location, FutureRes), !,
-    freeze(FutureRes, Res = FutureRes).
-
-check(and(TArgs), Location, V, Res) :-
-    setup_and(TArgs, V, Location, Res), !,
-    freeze(FutureRes, Res = FutureRes).
-
-
-check(T,Location,V, Result) :-
-    reason(T, Location, V, Reason),
-    Result = false(Reason).
 
 reason(T, Location, V, Reason) :-
     copy_term(Location, LocationWithoutAttributes, _Goals),
     Reason = ['radong','expected',T,'but got',V,'in',LocationWithoutAttributes].
 
 
+%% non-coroutine non-magic
 which_posts([],[],_,[]).
 which_posts([Pre|Pres],[Post|Posts],Args,[Post|T]) :-
     maplist(cond_is_true,Pre,Args), !,
@@ -178,16 +148,13 @@ cond_is_true(Spec, Val) :-
     spec_predicate(Spec, Predicate), !,
     call(Predicate, Val).
 cond_is_true(Spec, Val) :-
-    spec_predicate_recursive(Spec, Predicate), !,
+    spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant), !,
     call(Predicate, Val, NewSpecs, NewVals),
-    maplist(cond_is_true, NewSpecs, NewVals).
+    call(MergePred, NewSpecs, NewVals).
 cond_is_true(Spec, Val) :-
     spec_indirection(Spec, NewSpec), !,
     cond_is_true(NewSpec, Val).
 
-cond_is_true(any,_) :- !.
-cond_is_true(one_of(R), V) :- !,
-    some(cond_is_true1(V), R).
 
 cond_is_true1(A, B) :-
     cond_is_true(B, A).
