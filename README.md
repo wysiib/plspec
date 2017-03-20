@@ -142,3 +142,46 @@ int(odd, X) :- 1 is X mod 2.
 :- defspec_pred(int(X), int(X)).
 ```
 
+Then, you can define whether your integers are even or odd!
+
+```
+?- valid(int(even), 0). 
+true.
+?- valid(int(odd), 0).
+false.
+?- valid(int(even), 1).
+false.
+?- valid(int(odd), 1).
+true.
+```
+
+What happens is that we will call your predicate and just append the value as last argument to the call.
+
+
+#### defspec_pred_recursive/4
+
+Okay, this is the part where it gets crazy. You will only ever want this if you're knee deep in your own Prolog code and require extra fancy specs.
+
+You would call it like `defspec_pred_recursive(Spec, ValidPred, MergePred, MergePredInvariant)`.
+I will talk about `ValidPred` first.
+
+In order to verify your Spec, we will call `ValidPred`. The first arguments are those you wire directly in the `defspec`.
+We will append three arguments. The first one is the value we are looking it. The second one is a variable where you shall return us a list of specs you want us to check later on. The last one is a list of variables that should match these specs. These lists, thus, must have the same length.
+
+The idea is that you will only check a small part there. We implemented, for example, `compound` this way. `compound` will only check that the functor matches and delays the validation of its arguments until later. We will do that for you, somewhere in our code. Don't worry about that. The contract is that you will not receive variables during invariant checks.
+
+`MergePred` shall merge fully instantiated values. Arguments appended are these lists you returned, first the specs, second the values. I have implemented `and` for, e.g., compounds, as well as `or` for `one_of`.
+
+Analogously, `MergePredInvariant` deals with values which may not be fully instantiated. In a `compound`, the arguments may be variables. You return us these variables, we will do the callback when they get bound. Of course, this is co-routine based. This is the fun part.
+As for `MergePred`, I implemented `and_invariant` as well as `or_invariant`.
+You want anything else, you deal with it yourself. *plspec* allows you to do so. If you want exactly *n* out of *m* specs to be fulfilled, be my guest. But you implement it.
+
+
+## bugs and feedback
+
+We probably have tons of bugs and lots of room for improvement. If you use *plspec* and are having a bad time, please let us know. Feel free to open an issue for anything that seems wrong or could be done better. Be it documentation, examples, testcases or bugs. We can only improve if you tell us how.
+
+
+## future work
+
+It would be useful to be able to generate values out of specs, be it for testing or simply getting a feel how valid data should look.
