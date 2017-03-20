@@ -262,6 +262,11 @@ test(tree3) :-
                             a,
                             node(empty, 3, empty))).
 
+test(tree3) :-
+   \+ valid(tree(int), node(node(empty, 1, emppty),
+                            a,
+                            node(empty, 3, empty))).
+
 :- end_tests(trees).
 
 
