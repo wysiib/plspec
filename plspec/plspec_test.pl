@@ -140,7 +140,7 @@ test(not_conform4, [throws(_)]) :-
     my_atomic([2]).
 
 test(not_conform5, [throws(_)]) :-
-    \+ my_atomic([X]), X = 2.
+    \+ my_atomic([_]).
 
 :- end_tests(my_atomic).
 
@@ -233,3 +233,57 @@ test(nonconform2, [throws(_)]) :-
     findall(A, partial_instantiator(A), _).
 
 :- end_tests(partial_invariant_instantiation).
+
+
+
+
+:- defspec_pred(atom_named(X), atom_named(X)).
+
+atom_named(X, X).
+
+:- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
+                            atom_named(empty)])).
+
+:- begin_tests(trees).
+
+test(empty_is_tree) :-
+    valid(tree(int), empty).
+
+test(tree1) :-
+    valid(tree(int), node(empty, 1, empty)).
+
+test(tree2) :-
+    valid(tree(int), node(node(empty, 1, empty),
+                          2,
+                          node(empty, 3, empty))).
+
+test(tree3) :-
+   \+ valid(tree(int), node(node(empty, 1, empty),
+                            a,
+                            node(empty, 3, empty))).
+
+:- end_tests(trees).
+
+
+:- defspec_pred(int(X), int(X)).
+
+int(even, X) :- 0 is X mod 2.
+int(odd, X) :- 1 is X mod 2.
+
+:- begin_tests(self_defined_int).
+
+test(zero_is_even) :-
+    valid(int(even), 0).
+
+test(zero_is_not_odd) :-
+    \+ valid(int(odd), 0).
+
+test(one_is_odd) :-
+    valid(int(odd), 1).
+
+test(one_is_not_even) :-
+    \+ valid(int(even), 1).
+
+:- end_tests(self_defined_int).
+
+

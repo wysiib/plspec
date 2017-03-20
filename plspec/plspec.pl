@@ -1,4 +1,5 @@
-:- module(plspec,[spec_pre/2,spec_post/3,
+:- module(plspec,[spec_pre/2,spec_post/3,valid/2,
+                  defspec/2, defspec_pred/2, defspec_pred_recursive/4,
                   setup_uber_check/3,which_posts/4,check_posts/2,
                   some/2, error_not_matching_any_pre/3]).
 
@@ -33,6 +34,8 @@ spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
 
+true(_).
+
 spec_indirection(int, integer).
 spec_indirection([X], list(X)).
 
@@ -42,7 +45,6 @@ spec_predicate_recursive(and(X), spec_and(X), and, and_invariant).
 spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
 spec_predicate_recursive(one_of(X), spec_and(X), or, or_invariant).
 
-true(_).
 %% built-in recursive specs
 compound(Spec, Val, NewSpecs, NewVars) :-
     Spec =.. [Functor|NewSpecs],
@@ -50,6 +52,11 @@ compound(Spec, Val, NewSpecs, NewVars) :-
 
 list(Spec, Val, NewSpecs, NewVals) :-
     nonvar(Val), list1(Val, Spec, NewSpecs, NewVals).
+%% list1 only ensures that the value is a list.
+%% The type of its members is checked later on in a seperate step.
+%% list1 will return a spec for each member.
+%% If a tail is a variable, the bound value should be
+%% of the same type as the list itself.
 list1(L, Spec, [Spec|ST], [H|VT]) :-
     nonvar(L), L = [H|T], !,
     list1(T, Spec, ST, VT).
@@ -57,12 +64,45 @@ list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
 
+:- begin_tests(lists).
+
+test(empty_list) :-
+    list(Spec, [], Specs, Vals), !,
+    var(Spec), Specs == [], Vals == [].
+
+test(list1) :-
+    list(int, [1,2,3], Specs, Vals), !,
+    Specs == [int, int, int], Vals == [1, 2, 3].
+
+test(list2) :-
+    list(list(int), [1,2,3], Specs, Vals), !,
+    Specs == [list(int), list(int), list(int)], Vals == [1, 2, 3].
+
+test(list3) :-
+    list(int, [X,Y,Z], Specs, Vals), !,
+    Specs == [int, int, int], Vals == [X, Y, Z].
+
+:- end_tests(lists).
+
+
 spec_and(SpecList, Var, SpecList, VarRepeated) :-
+    %% this is actually repeat
     same_length(SpecList, VarRepeated),
     maplist(=(Var), VarRepeated).
 
-tuple(SpecList, VarList, SpecList, VarList) :-
-    same_length(SpecList, VarList).
+:- begin_tests(spec_and).
+
+test(empty) :-
+    spec_and([], Var, List, VarRepeated), !,
+    var(Var), List == [], VarRepeated == [].
+
+test(instantiated_var) :-
+    spec_and([int, atom], X, List, VarRepeated), !,
+    List == [int, atom], VarRepeated == [X, X].
+
+:- end_tests(spec_and).
+
+tuple(SpecList, VarList, SpecList, VarList).
 
 
 %% merge recursive specs
@@ -103,12 +143,12 @@ or([HSpec|TSpec], [HVal|TVal]) :-
 
 
 %% check coroutine magic
-setup_uber_check(Location,A,B) :-
-    setup_check(Location,Res,A,B),
+setup_uber_check(Location,Spec,Val) :-
+    setup_check(Location,Res,Spec,Val),
     freeze(Res, ((Res == true) -> true ; throw(Res))).
 
-setup_check(Location,Res,A,B) :-
-    setup_check_aux(A,Location,B,Res).
+setup_check(Location,Res,Spec,Val) :-
+    setup_check_aux(Spec,Location,Val,Res).
 
 setup_check_aux(Spec, Location, Val, Res) :-
     spec_predicate(Spec, Pred), !,
@@ -122,6 +162,63 @@ setup_check_aux(Spec, Location, Val, Res) :-
                     -> call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
                     ;  reason(Spec, Location, Val, Res))).
 
+:- begin_tests(invariants).
+
+test(conform) :-
+    setup_uber_check(here, int, _).
+
+test(conform2) :-
+    setup_uber_check(here, int, X), !, X = 2.
+
+test(nonconform, [throws(_)]) :-
+    setup_uber_check(here, int, X), !, X = a.
+
+test(list_empty) :-
+    setup_uber_check(here, list(int), _).
+
+test(list_ground) :-
+    setup_uber_check(here, list(int), [1,2,3]).
+
+test(list_ground_later) :-
+    setup_uber_check(here, list(int), X), !, X = [1,2,3].
+
+test(partial_list_instantiation) :-
+    setup_uber_check(here, list(int), X), !, X = [1,_,3].
+
+test(partial_list_instantiation2) :-
+    setup_uber_check(here, list(int), X), !, X = [_,_,3].
+
+test(partial_list_instantiation3) :-
+    setup_uber_check(here, list(int), X), !, X = [_|_].
+
+test(partial_list_instantiation4, [throws(_)]) :-
+    setup_uber_check(here, list(int), X), !, X = [a|_].
+
+test(partial_list_instantiation5, [throws(_)]) :-
+    setup_uber_check(here, list(int), X), !, X = [_, a|_].
+
+test(partial_list_instantiation6, [throws(_)]) :-
+    setup_uber_check(here, list(int), X), !, X = [_, _|a].
+
+test(partial_list_instantiation7, [throws(_)]) :-
+    setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,a]].
+
+test(partial_list_instantiation8) :-
+    setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,6]].
+
+test(one_of1) :-
+    setup_uber_check(here, one_of([int, atom]), _).
+
+test(one_of2) :-
+    setup_uber_check(here, one_of([int, atom]), X), !, X = 1.
+
+test(one_of3) :-
+    setup_uber_check(here, one_of([int, atom]), X), !, X = a.
+
+test(one_of4, throws(_)) :-
+    setup_uber_check(here, one_of([int, atom]), X), !, X = [].
+
+:- end_tests(invariants).
 
 
 
@@ -143,6 +240,8 @@ check_posts(Args,Posts) :-
 check_posts(_,_) :-
     throw(['radong','postcondition violated']).
 
+valid(Spec, Val) :-
+    cond_is_true(Spec, Val).
 
 cond_is_true(Spec, Val) :-
     spec_predicate(Spec, Predicate), !,
@@ -186,6 +285,9 @@ test(list) :-
     cond_is_true([any], [[]]),
     cond_is_true([any], [any]).
 
+test(list2) :-
+    cond_is_true([int], [1,2]).
+
 test(list_of_list) :-
     \+ cond_is_true([[any]], _),
     \+ cond_is_true([[any]], [a]),
@@ -211,6 +313,16 @@ test(tuples) :-
 
 test(indirection) :-
     cond_is_true(int, 3).
+
+test(one_of) :-
+    cond_is_true(one_of([int, atom]), 3),
+    cond_is_true(one_of([int, atom]), abc),
+    \+ cond_is_true(one_of([int, atom]), []),
+    \+ cond_is_true(one_of([int, atom]), _).
+
+test(and) :-
+    cond_is_true(and([int, ground]), 3),
+    \+ cond_is_true(and([int, atom]), 3).
 
 :- end_tests(cond_is_true).
 
