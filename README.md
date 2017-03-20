@@ -81,3 +81,64 @@ There are building blocks to construct more complicated specs:
 * `tuple(X)` allows heterogeneous lists of a fixed length. An example is `tuple([int, atom])` which will accept `[2, foo]`, but neither `[foo, 2]` or `[2, foo, bar]`.
 * `and(X)` takes a list `X` of other specs. Valid values have to conform to each of the specs. For example, `and([ground, list(any)])` only allows lists that are ground. 
 * `one_of(X)` also takes a list `X` of other specs. Valid values have to conform to at least one of the specs. For example, `one_of([int, atom])` will accept `3` and `foo`, but will not allow `[]`.
+
+
+### define your own specs
+
+We had extensibility in mind when we wrote *plspec*. Of course, you can write your own specs and I will tell you how:
+
+
+#### defspec/2
+
+`defspec/2` is what you probably want in most of the cases. It defines an alias and is kinda mighty on its own already. Let's say you want to define your own tree spec:
+
+```
+:- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
+                            compound(empty)])).
+```
+
+And we're done already. A tree either is empty, or a term of arity 3 where the left and right arguments are trees themselves and the center argument is a value of the given type.
+
+##### try a spec!
+
+You don't believe me? We can ask `valid/2` if you want me to. Yeah, I'm gonna do that. Hey, `valid/2`, get over here!
+```
+?- valid(tree(int), empty).
+true.
+```
+
+Okay, the empty tree works. How about more complex ones?
+
+```
+?- valid(tree(int), node(empty, 1, empty)).
+true.
+?- valid(tree(int), node(node(empty, 1, empty),
+|                        2,
+|                        node(empty, 3, empty))).
+true.
+```
+
+And, most importantly, what does NOT work?
+
+```
+?- valid(tree(int), node(node(empty, 1, empty),
+|                        a, % not an int!
+|                        node(empty, 3, empty))).
+false.
+?- valid(tree(int), node(node(empty, 1, emppty), % oop, a typo
+|                        1,
+|                        node(empty, 3, empty))).
+false.
+```
+
+#### defspec_pred/2
+
+Sometimes you want to check a value yourself. I get that.
+That's where you use `defspec_pred/2`.
+
+```
+int(even, X) :- 0 is X mod 2.
+int(odd, X) :- 1 is X mod 2.
+:- defspec_pred(int(X), int(X)).
+```
+
