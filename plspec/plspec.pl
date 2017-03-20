@@ -2,6 +2,9 @@
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4,
                   setup_uber_check/3,which_posts/4,check_posts/2,
                   some/2, error_not_matching_any_pre/3]).
+                  
+:- use_module(library(plunit)).
+:- use_module(library(lists), [maplist/2, maplist/3]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_post/3.
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/2.
@@ -87,7 +90,8 @@ test(list3) :-
 
 spec_and(SpecList, Var, SpecList, VarRepeated) :-
     %% this is actually repeat
-    same_length(SpecList, VarRepeated),
+    length(SpecList,L),
+    length(VarRepeated,L),
     maplist(=(Var), VarRepeated).
 
 :- begin_tests(spec_and).
@@ -125,7 +129,7 @@ and_invariant(Specs, Vals, Location, R) :-
 
 or_invariant([], [], Acc, OrigPattern, Location, UberVar) :-
     %% TODO: fix error message
-    freeze(Acc, Acc == fail -> (reason(OrigPattern, Location, unknown, Reason), UberVar = false(Reason)) ; true).
+    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, unknown, Reason), UberVar = false(Reason)) ; true)).
 or_invariant([H|T], [V|VT], Prior, OrigPattern, Location, UberVar) :-
     setup_check(Location, ResOption, H, V),
     freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
