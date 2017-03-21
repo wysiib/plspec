@@ -358,14 +358,14 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
                (plspec:some(spec_matches(NewArgs), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> maplist(plspec:setup_uber_check(Head),InvariantSpec,Args) ; true),
+               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Head),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
                % TODO: setup coroutiness
                % gather all matching postconditions
                plspec:which_posts(PrePostSpecs,PostSpecs,Args,PostsToCheck),
                Goal,
-               maplist(plspec:check_posts(Args),PostsToCheck)).
+               lists:maplist(plspec:check_posts(Args),PostsToCheck)).
 
 should_expand(A, F, Arity, PreSpecs) :-
     functor(A,F,Arity),
@@ -387,3 +387,8 @@ do_expand(A,A).
 :- multifile term_expansion/2.
 user:term_expansion(A, B) :-
     do_expand(A,B).
+
+:- multifile user:term_expansion/6.
+user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
+    nonmember(plspec_token, Ids),
+    do_expand(Term1, Term2).
