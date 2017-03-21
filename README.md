@@ -68,6 +68,7 @@ The promise you make here is that if the second argument was a variable and `mem
 We have implemented a couple of specs:
 
 * `any` allows any value
+* `atomic` allows atomic values
 * `integer` (or `int` for short) allows integer values
 * `number` allows any kind of numbers
 * `var` allows variables
@@ -78,9 +79,9 @@ There are building blocks to construct more complicated specs:
 
 * `compound(X)` allows terms with a given functor and arity, as well as given specs for its arguments. For example, `compound(int_wrapper(int))` will allow `int_wrapper(2)`, but not `int_wrapper(pi)` or `foo(2)`.
 * `list(X)` or `[X]` allows homogeneous lists whose members are of type `X`, e.g. `list(int)` only allows integers as members.
-* `tuple(X)` allows heterogeneous lists of a fixed length. An example is `tuple([int, atom])` which will accept `[2, foo]`, but neither `[foo, 2]` or `[2, foo, bar]`.
+* `tuple(X)` allows heterogeneous lists of a fixed length. An example is `tuple([int, atomic])` which will accept `[2, foo]`, but neither `[foo, 2]` or `[2, foo, bar]`.
 * `and(X)` takes a list `X` of other specs. Valid values have to conform to each of the specs. For example, `and([ground, list(any)])` only allows lists that are ground. 
-* `one_of(X)` also takes a list `X` of other specs. Valid values have to conform to at least one of the specs. For example, `one_of([int, atom])` will accept `3` and `foo`, but will not allow `[]`.
+* `one_of(X)` also takes a list `X` of other specs. Valid values have to conform to at least one of the specs. For example, `one_of([int, atomic])` will accept `3` and `foo`, but will not allow `[1]`.
 
 
 ### define your own specs

@@ -29,7 +29,7 @@ defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
 
 
 
-spec_predicate(atom, atom).
+spec_predicate(atomic, atomic).
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(var, var).
@@ -101,8 +101,8 @@ test(empty) :-
     var(Var), List == [], VarRepeated == [].
 
 test(instantiated_var) :-
-    spec_and([int, atom], X, List, VarRepeated), !,
-    List == [int, atom], VarRepeated == [X, X].
+    spec_and([int, atomic], X, List, VarRepeated), !,
+    List == [int, atomic], VarRepeated == [X, X].
 
 :- end_tests(spec_and).
 
@@ -211,16 +211,16 @@ test(partial_list_instantiation8) :-
     setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,6]].
 
 test(one_of1) :-
-    setup_uber_check(here, one_of([int, atom]), _).
+    setup_uber_check(here, one_of([int, atomic]), _).
 
 test(one_of2) :-
-    setup_uber_check(here, one_of([int, atom]), X), !, X = 1.
+    setup_uber_check(here, one_of([int, atomic]), X), !, X = 1.
 
 test(one_of3) :-
-    setup_uber_check(here, one_of([int, atom]), X), !, X = a.
+    setup_uber_check(here, one_of([int, atomic]), X), !, X = a.
 
 test(one_of4, throws(_)) :-
-    setup_uber_check(here, one_of([int, atom]), X), !, X = [].
+    setup_uber_check(here, one_of([int, atomic]), X), !, X = [1].
 
 :- end_tests(invariants).
 
@@ -319,14 +319,14 @@ test(indirection) :-
     cond_is_true(int, 3).
 
 test(one_of) :-
-    cond_is_true(one_of([int, atom]), 3),
-    cond_is_true(one_of([int, atom]), abc),
-    \+ cond_is_true(one_of([int, atom]), []),
-    \+ cond_is_true(one_of([int, atom]), _).
+    cond_is_true(one_of([int, atomic]), 3),
+    cond_is_true(one_of([int, atomic]), abc),
+    \+ cond_is_true(one_of([int, atomic]), [1]),
+    \+ cond_is_true(one_of([int, atomic]), _).
 
 test(and) :-
     cond_is_true(and([int, ground]), 3),
-    \+ cond_is_true(and([int, atom]), 3).
+    \+ cond_is_true(and([int, var]), 3).
 
 :- end_tests(cond_is_true).
 

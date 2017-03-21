@@ -116,8 +116,9 @@ e.g. \verb|list(int)|.
 In order to allow checks for invariant,
 only a small aspect should be checked by a predicate,
 in this example that the value is indeed a list.
-\verb|list(X)| is implemented via \verb|defspec_recursive/2|.
-The associated predicate takes for arguments:
+\verb|list(X)| is implemented via \verb|defspec_recursive/4|.
+
+The first associated predicate takes four arguments:
 firstly, the argument \verb|X| of \verb|list(X)| itself;
 secondly, the actual value.
 The third argument is a variable that should be bound to a list
