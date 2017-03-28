@@ -1,7 +1,8 @@
 :- module(plspec,[spec_pre/2,spec_post/3,valid/2,
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4,
                   setup_uber_check/3,which_posts/4,check_posts/2,
-                  some/2, error_not_matching_any_pre/3]).
+                  some/2, error_not_matching_any_pre/3,
+                  set_error_handler/1]).
                   
 :- use_module(library(plunit)).
 :- use_module(library(lists), [maplist/2, maplist/3]).
@@ -47,6 +48,16 @@ spec_predicate_recursive(list(X), list(X), and, and_invariant).
 spec_predicate_recursive(and(X), spec_and(X), and, and_invariant).
 spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
 spec_predicate_recursive(one_of(X), spec_and(X), or, or_invariant).
+
+:- dynamic error_handler/1.
+error_handler(throw).
+
+:- meta_predicate set_error_handler(+, 0).
+set_error_handler(Pred) :-
+    retractall(error_handler(_)),
+    assert(error_handler(Pred)).
+
+
 
 %% built-in recursive specs
 compound(Spec, Val, NewSpecs, NewVars) :-
@@ -149,7 +160,7 @@ or([HSpec|TSpec], [HVal|TVal]) :-
 %% check coroutine magic
 setup_uber_check(Location,Spec,Val) :-
     setup_check(Location,Res,Spec,Val),
-    freeze(Res, ((Res == true) -> true ; throw(Res))).
+    freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
 
 setup_check(Location,Res,Spec,Val) :-
     setup_check_aux(Spec,Location,Val,Res).
@@ -242,7 +253,8 @@ which_posts([_|Pres],[_|Posts],Args,T) :-
 check_posts(Args,Posts) :-
     maplist(cond_is_true,Posts,Args), !.
 check_posts(_,_) :-
-    throw(['radong','postcondition violated']).
+    error_handler(X),
+    call(X, ['radong','postcondition violated']).
 
 valid(Spec, Val) :-
     cond_is_true(Spec, Val).
@@ -347,7 +359,8 @@ spec_matches(Args, Spec) :-
 
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-
-    throw(['Radong', Args, 'does not match any spec of', PreSpecs, 'in', Functor]).
+    error_handler(X),
+    call(X, ['Radong', Args, 'does not match any spec of', PreSpecs, 'in', Functor]).
 
 
 
