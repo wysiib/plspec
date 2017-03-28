@@ -381,7 +381,6 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
                (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Head),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
-               % TODO: setup coroutiness
                % gather all matching postconditions
                plspec:which_posts(PrePostSpecs,PostSpecs,Args,PostsToCheck),
                Goal,
