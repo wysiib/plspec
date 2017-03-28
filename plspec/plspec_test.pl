@@ -187,7 +187,7 @@ test(nonconform2, [throws(_)]) :-
 
 
 :- plspec:spec_pre(invariant_violator/1, [any]).
-:- plspec:spec_invariant(invariant_violator/1, [atomic]).
+:- plspec:spec_invariant(invariant_violator/1, [test:atomic]).
 invariant_violator(X) :-
     X = [1], X == [2]. % fail in a more sophisticated way
 invariant_violator(a).

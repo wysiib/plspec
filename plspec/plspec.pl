@@ -5,17 +5,24 @@
                   set_error_handler/1]).
                   
 :- use_module(library(plunit)).
-:- use_module(library(lists), [maplist/2, maplist/3]).
+:- use_module(library(lists), [maplist/2, maplist/3, maplist/4]).
 
-:- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_post/3.
+:- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/2.
 
 %% set up facts
 
+named_spec(Name:Spec, Name, Spec).
+
+le_spec_invariant(Pred, Spec) :-
+    le_spec_invariant(Pred, _, Spec).
+
 spec_pre(Pred,PreSpec) :-
     assert(le_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
-    assert(le_spec_invariant(Pred, InvariantSpec)).
+    (maplist(named_spec, InvariantSpec, Names, Specs)
+     -> assert(le_spec_invariant(Pred, Names, Specs))
+      ; assert(le_spec_invariant(Pred, InvariantSpec))).
 spec_post(Pred,PreSpec,PostSpec) :-
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
 
