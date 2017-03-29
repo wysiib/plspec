@@ -50,6 +50,9 @@ Let's consider some values:
 
 If you choose not to bind the variable in your predicate, an exception will be thrown even when the caller decides to bind the variable to a disallowed type later on. Neat, huh?
 
+`spec_invariant/2`additionally allows naming of arguments. Another valid spec which might be more useful is:
+`spec_invariant(member/2, [element_in_list:any, listy_mc_listface:list(any)]).`, where names are given via the functor `:/2`.
+Note that either all or none of the specs must contain names.
 
 ### spec_post/3
 
@@ -176,6 +179,10 @@ The idea is that you will only check a small part there. We implemented, for exa
 Analogously, `MergePredInvariant` deals with values which may not be fully instantiated. In a `compound`, the arguments may be variables. You return us these variables, we will do the callback when they get bound. Of course, this is co-routine based. This is the fun part.
 As for `MergePred`, I implemented `and_invariant` as well as `or_invariant`.
 You want anything else, you deal with it yourself. *plspec* allows you to do so. If you want exactly *n* out of *m* specs to be fulfilled, be my guest. But you implement it.
+
+### register custom error handler
+
+You can register your own error handler by calling `set_error_handler/1`. The argument shall be a predicate which can be called with a single argument, the error message. Note that the format of the error message might be changed in the future. The handler should not rely on a specific format and simply, e.g., print or store the error messages.
 
 
 ## bugs and feedback
