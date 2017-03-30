@@ -1,6 +1,6 @@
 :- module(plspec,[spec_pre/2,spec_post/3,valid/2,
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4,
-                  setup_uber_check/3,which_posts/4,check_posts/2,
+                  setup_uber_check/3,which_posts/5,check_posts/3,
                   some/2, error_not_matching_any_pre/3,
                   set_error_handler/1]).
                   
@@ -153,7 +153,7 @@ or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
     or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
 
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
-    or_invariant(NewSpecs, NewVals, [], OrigVals, or(NewSpecs), Location, FutureRes).
+    or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
 
 and([], [], true).
 and([S|Specs], [V|Vals], Res) :-
@@ -257,18 +257,21 @@ reason(T, Location, V, Reason) :-
 
 
 %% non-coroutine non-magic
-which_posts([],[],_,[]).
-which_posts([Pre|Pres],[Post|Posts],Args,[Post|T]) :-
+which_posts([],[],_,[],[]).
+which_posts([Pre|Pres],[Post|Posts],Args,[Pre|PreT],[Post|T]) :-
     maplist(valid,Pre,Args), !,
-    which_posts(Pres,Posts,Args,T).
-which_posts([_|Pres],[_|Posts],Args,T) :-
-    which_posts(Pres,Posts,Args,T).
+    which_posts(Pres,Posts,Args,PreT, T).
+which_posts([_|Pres],[_|Posts],Args,PreT,T) :-
+    which_posts(Pres,Posts,Args,PreT,T).
 
-check_posts(Args,Posts) :-
-    maplist(valid,Posts,Args), !.
-check_posts(_,_) :-
-    error_handler(X),
-    call(X, ['radong','postcondition violated']).
+check_posts([], [], []).
+check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
+    evaluate_spec_match(Post, Arg, Res),
+    (Res == true
+     -> check_posts(ArgT, PreT, PostT)
+      ; error_handler(X),
+        call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
+    
 
 valid(Spec, Val) :-
     evaluate_spec_match(Spec, Val, true).
@@ -396,9 +399,9 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
                % unify with pattern matching of head
                NewArgs = Args,
                % gather all matching postconditions
-               plspec:which_posts(PrePostSpecs,PostSpecs,Args,PostsToCheck),
+               plspec:which_posts(PrePostSpecs,PostSpecs,Args,ValidPrePostSpecs,PostsToCheck),
                Goal,
-               lists:maplist(plspec:check_posts(Args),PostsToCheck)).
+               lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck)).
 
 should_expand(A, F, Arity, PreSpecs) :-
     functor(A,F,Arity),
