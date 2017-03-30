@@ -159,14 +159,14 @@ and([], [], true).
 and([S|Specs], [V|Vals], Res) :-
     (evaluate_spec_match(S, V, true)
      -> and(Specs, Vals, Res)
-      ; Res = fail(spec_not_matched(S, V))).
+      ; Res = fail(spec_not_matched(spec(S), value(V)))).
 or2([HSpec|TSpec], [HVal|TVal]) :-
     (evaluate_spec_match(HSpec, HVal, true)
       -> true
       ;  or2(TSpec, TVal)).
 or(Specs, Vals, true) :-
     or2(Specs, Vals), !.
-or(Specs, Vals, fail(spec_not_matched_merge(or(Specs), Vals))).
+or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
 
 
 
@@ -189,7 +189,7 @@ setup_check_aux(Spec, Location, Val, Res) :-
     freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
                     -> call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
                     ;  reason(Spec, Location, Val, Res))).
-setup_check_aux(Spec, Location, _, fail(spec_not_found_in(Spec, Location))).
+setup_check_aux(Spec, Location, _, fail(spec_not_found(spec(Spec), location(Location)))).
 
 :- begin_tests(invariants).
 
@@ -253,7 +253,7 @@ test(one_of4, throws(_)) :-
 
 reason(T, Location, V, Reason) :-
     copy_term(Location, LocationWithoutAttributes, _Goals),
-    Reason = ['radong','expected',T,'but got',V,'in',LocationWithoutAttributes].
+    Reason = spec_violated(spec(T), value(V), location(LocationWithoutAttributes)).
 
 
 %% non-coroutine non-magic
@@ -280,16 +280,16 @@ evaluate_spec_match(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate), !,
     (call(Predicate, Val)
      -> Res = true
-      ; Res = fail(spec_not_matched(Spec, Val))).
+      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))).
 evaluate_spec_match(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant), !,
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
-      ; Res = fail(spec_not_matched(Spec, Val))).
+      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))).
 evaluate_spec_match(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec), !,
     evaluate_spec_match(NewSpec, Val, Res).
-evaluate_spec_match(Spec, _, fail(spec_not_found(Spec))).
+evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))).
 
 
 
@@ -384,7 +384,7 @@ spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-
     error_handler(X),
-    call(X, ['Radong', Args, 'does not match any spec of', PreSpecs, 'in', Functor]).
+    call(X, spec_violated(specs(PreSpecs), values(Args), location(Functor))). 
 
 
 
@@ -394,7 +394,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     length(NewArgs, Lenny),
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
-               (plspec:some(spec_matches(NewArgs, true), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
+               (plspec:some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs)),
                (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(pred_specs_args(Head, InvariantSpec, Args)),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
