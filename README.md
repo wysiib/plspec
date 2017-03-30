@@ -174,7 +174,7 @@ We will append three arguments. The first one is the value we are looking it. Th
 
 The idea is that you will only check a small part there. We implemented, for example, `compound` this way. `compound` will only check that the functor matches and delays the validation of its arguments until later. We will do that for you, somewhere in our code. Don't worry about that. The contract is that you will not receive variables during invariant checks.
 
-`MergePred` shall merge fully instantiated values. Arguments appended are these lists you returned, first the specs, second the values. I have implemented `and` for, e.g., compounds, as well as `or` for `one_of`.
+`MergePred` shall merge fully instantiated values. Arguments appended are these lists you returned, first the specs, second the values and lastly a variable that should be bound to either `true` or `false(_)`. `MergePred` shall never fail. I have implemented `and` for, e.g., compounds, as well as `or` for `one_of`.
 
 Analogously, `MergePredInvariant` deals with values which may not be fully instantiated. In a `compound`, the arguments may be variables. You return us these variables, we will do the callback when they get bound. Of course, this is co-routine based. This is the fun part.
 As for `MergePred`, I implemented `and_invariant` as well as `or_invariant`.
