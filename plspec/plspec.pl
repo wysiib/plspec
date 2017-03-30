@@ -156,12 +156,19 @@ or_invariant([H|T], [V|VT], Prior, OrigPattern, Location, UberVar) :-
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
     or_invariant(NewSpecs, NewVals, [], or(NewSpecs), Location, FutureRes).
 
-and(Specs, Vals) :-
-    maplist(cond_is_true, Specs, Vals).
-or([HSpec|TSpec], [HVal|TVal]) :-
-    (cond_is_true(HSpec, HVal)
+and([], [], true).
+and([S|Specs], [V|Vals], Res) :-
+    (evaluate_spec_match(S, V, true)
+     -> and(Specs, Vals, Res)
+      ; Res = fail(spec_not_matched(S, V))).
+or2([HSpec|TSpec], [HVal|TVal]) :-
+    (evaluate_spec_match(HSpec, HVal, true)
       -> true
-      ;  or(TSpec, TVal)).
+      ;  or2(TSpec, TVal)).
+or(Specs, Vals, true) :-
+    or2(Specs, Vals), !.
+or(Specs, Vals, fail(spec_not_matched_merge(or(Specs), Vals))).
+
 
 
 %% check coroutine magic
@@ -252,102 +259,103 @@ reason(T, Location, V, Reason) :-
 %% non-coroutine non-magic
 which_posts([],[],_,[]).
 which_posts([Pre|Pres],[Post|Posts],Args,[Post|T]) :-
-    maplist(cond_is_true,Pre,Args), !,
+    maplist(valid,Pre,Args), !,
     which_posts(Pres,Posts,Args,T).
 which_posts([_|Pres],[_|Posts],Args,T) :-
     which_posts(Pres,Posts,Args,T).
 
 check_posts(Args,Posts) :-
-    maplist(cond_is_true,Posts,Args), !.
+    maplist(valid,Posts,Args), !.
 check_posts(_,_) :-
     error_handler(X),
     call(X, ['radong','postcondition violated']).
 
 valid(Spec, Val) :-
-    cond_is_true(Spec, Val).
+    evaluate_spec_match(Spec, Val, true).
 
-cond_is_true(Spec, Val) :-
+evaluate_spec_match(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate), !,
-    call(Predicate, Val).
-cond_is_true(Spec, Val) :-
+    (call(Predicate, Val)
+     -> Res = true
+      ; Res = fail(spec_not_matched(Spec, Val))).
+evaluate_spec_match(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant), !,
-    call(Predicate, Val, NewSpecs, NewVals),
-    call(MergePred, NewSpecs, NewVals).
-cond_is_true(Spec, Val) :-
+    (call(Predicate, Val, NewSpecs, NewVals)
+     -> call(MergePred, NewSpecs, NewVals, Res)
+      ; Res = fail(spec_not_matched(Spec, Val))).
+evaluate_spec_match(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec), !,
-    cond_is_true(NewSpec, Val).
+    evaluate_spec_match(NewSpec, Val, Res).
+evaluate_spec_match(Spec, _, fail(spec_not_found(Spec))).
 
 
-cond_is_true1(A, B) :-
-    cond_is_true(B, A).
 
-
-:- begin_tests(cond_is_true).
+:- begin_tests(valid).
 
 test(any) :-
-    cond_is_true(any, _),
-    cond_is_true(any, 1),
-    cond_is_true(any, []),
-    cond_is_true(any, foo(_, _)),
-    cond_is_true(any, foo).
+    valid(any, _),
+    valid(any, 1),
+    valid(any, []),
+    valid(any, foo(_, _)),
+    valid(any, foo).
 
 test(ground) :-
-    \+ cond_is_true(ground, _),
-    cond_is_true(ground, 1),
-    cond_is_true(ground, []),
-    \+ cond_is_true(ground, foo(_, _)),
-    cond_is_true(ground, foo(1, 2)),
-    cond_is_true(ground, foo).
+    \+ valid(ground, _),
+    valid(ground, 1),
+    valid(ground, []),
+    \+ valid(ground, foo(_, _)),
+    valid(ground, foo(1, 2)),
+    valid(ground, foo).
 
 test(list) :-
-    \+ cond_is_true([any], _),
-    cond_is_true([any], []),
-    cond_is_true([any], [a]),
-    cond_is_true([any], [1]),
-    cond_is_true([any], [_]),
-    cond_is_true([any], [[]]),
-    cond_is_true([any], [any]).
+    \+ valid([any], _),
+    valid([any], []),
+    valid([any], [a]),
+    valid([any], [1]),
+    valid([any], [_]),
+    valid([any], [[]]),
+    valid([any], [any]).
 
 test(list2) :-
-    cond_is_true([int], [1,2]).
+    valid([int], [1,2]).
 
 test(list_of_list) :-
-    \+ cond_is_true([[any]], _),
-    \+ cond_is_true([[any]], [a]),
-    \+ cond_is_true([[any]], [_]),
-    cond_is_true([[any]], []),
-    cond_is_true([[any]], [[1]]),
-    cond_is_true([[any]], [[a]]),
-    cond_is_true([[any]], [[]]).
+    \+ valid([[any]], _),
+    \+ valid([[any]], [a]),
+    \+ valid([[any]], [_]),
+    valid([[any]], []),
+    valid([[any]], [[1]]),
+    valid([[any]], [[a]]),
+    valid([[any]], [[]]).
 
 test(compounds) :-
-    cond_is_true(compound(foo(any)), foo(_)),
-    cond_is_true(compound(foo(any)), foo(a)),
-    \+ cond_is_true(compound(foo(any)), bar(a)),
-    \+ cond_is_true(compound(foo(any, any)), foo(a)),
-    cond_is_true(compound(foo(any, any)), foo(a, a)),
-    \+ cond_is_true(compound(foo(any, var)), foo(a, a)).
+    valid(compound(foo(any)), foo(_)),
+    valid(compound(foo(any)), foo(a)),
+    \+ valid(compound(foo(any)), bar(a)),
+    \+ valid(compound(foo(any, any)), foo(a)),
+    valid(compound(foo(any, any)), foo(a, a)),
+    \+ valid(compound(foo(any, var)), foo(a, a)).
 
 test(tuples) :-
-    cond_is_true(tuple([any]), [_]),
-    \+ cond_is_true(tuple([any]), []),
-    \+ cond_is_true(tuple([any]), [_, _]),
-    cond_is_true(tuple([any, any]), [_, _]).
+    valid(tuple([any]), [_]),
+    \+ valid(tuple([any]), []),
+    \+ valid(tuple([any]), [_, _]),
+    valid(tuple([any, any]), [_, _]).
 
 test(indirection) :-
-    cond_is_true(int, 3).
+    valid(int, 3).
 
 test(one_of) :-
-    cond_is_true(one_of([int, atomic]), 3),
-    cond_is_true(one_of([int, atomic]), abc),
-    \+ cond_is_true(one_of([int, atomic]), [1]),
-    \+ cond_is_true(one_of([int, atomic]), _).
+    valid(one_of([int, atomic]), 3),
+    valid(one_of([int, atomic]), abc),
+    \+ valid(one_of([int, atomic]), [1]),
+    \+ valid(one_of([int, atomic]), _).
 
 test(and) :-
-    cond_is_true(and([int, ground]), 3),
-    \+ cond_is_true(and([int, var]), 3).
+    valid(and([int, ground]), 3),
+    \+ valid(and([int, var]), 3).
 
-:- end_tests(cond_is_true).
+:- end_tests(valid).
 
 
 
@@ -361,8 +369,14 @@ some1([H|_], Goal) :-
 some1([_|T], Goal) :-
     some1(T, Goal).
 
-spec_matches(Args, Spec) :-
-    maplist(cond_is_true, Spec, Args).
+
+spec_matches([], true, []).
+spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
+    evaluate_spec_match(Spec, Arg, R),
+    (R == true
+    -> spec_matches(ArgsT, Res, SpecT)
+     ; Res = spec_not_matched(Spec, Arg, in(R))).
+    
 
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-
@@ -377,7 +391,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     length(NewArgs, Lenny),
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
-               (plspec:some(spec_matches(NewArgs), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
+               (plspec:some(spec_matches(NewArgs, true), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
                (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Head),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
