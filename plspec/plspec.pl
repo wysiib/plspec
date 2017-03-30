@@ -145,16 +145,15 @@ invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
 and_invariant(Specs, Vals, Location, R) :-
     invariand(Specs, Vals, Location, R).
 
-or_invariant([], [], Acc, OrigPattern, Location, UberVar) :-
-    %% TODO: fix error message
-    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, unknown, Reason), UberVar = false(Reason)) ; true)).
-or_invariant([H|T], [V|VT], Prior, OrigPattern, Location, UberVar) :-
+or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
+    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = fail(Reason)) ; true)).
+or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
     setup_check(Location, ResOption, H, V),
     freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
-    or_invariant(T, VT, Current, OrigPattern, Location, UberVar).
+    or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
 
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
-    or_invariant(NewSpecs, NewVals, [], or(NewSpecs), Location, FutureRes).
+    or_invariant(NewSpecs, NewVals, [], OrigVals, or(NewSpecs), Location, FutureRes).
 
 and([], [], true).
 and([S|Specs], [V|Vals], Res) :-
@@ -186,10 +185,11 @@ setup_check_aux(Spec, Location, Val, Res) :-
     spec_indirection(Spec, OtherSpec), !,
     setup_check_aux(OtherSpec, Location, Val, Res).
 setup_check_aux(Spec, Location, Val, Res) :-
-    spec_predicate_recursive(Spec, Pred, _MergePred, MergePredInvariant),
+    spec_predicate_recursive(Spec, Pred, _MergePred, MergePredInvariant), !,
     freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
                     -> call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
                     ;  reason(Spec, Location, Val, Res))).
+setup_check_aux(Spec, Location, _, fail(spec_not_found_in(Spec, Location))).
 
 :- begin_tests(invariants).
 
@@ -392,7 +392,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
                (plspec:some(spec_matches(NewArgs, true), PreSpecs) -> true ; !, plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs), fail),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Head),InvariantSpec,Args) ; true),
+               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(pred_specs_args(Head, InvariantSpec, Args)),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
                % gather all matching postconditions
