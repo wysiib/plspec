@@ -291,4 +291,16 @@ test(one_is_not_even) :-
 
 :- end_tests(self_defined_int).
 
+:- spec_pre(bind_to_zero/1, [any]).
+:- spec_post(bind_to_zero/1, [any], [list(any)]).
+:- spec_post(bind_to_zero/1, [var], [ground]).
+bind_to_zero(0).
+
+:- begin_tests(violated_postcondition).
+
+test(postcondition_violated, [throws(_)]) :-
+    bind_to_zero(_).
+
+:- end_tests(violated_postcondition).
+
 
