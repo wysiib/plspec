@@ -1,4 +1,4 @@
-:- module(plspec,[spec_pre/2,spec_post/3,valid/2,
+:- module(plspec,[spec_pre/2,spec_post/3,spec_invariant/2,valid/2,
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4,
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   some/2, error_not_matching_any_pre/3,
