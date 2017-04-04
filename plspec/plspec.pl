@@ -411,6 +411,9 @@ error_not_matching_any_pre(Functor, Args, PreSpecs) :-
 expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
     Head =.. [Functor|Args],
     length(Args, Lenny),
+    %% newargs: only relevant if head implements pattern matching:
+    % consider foo(foo). then the call 'foo(bar)' would not violate the spec but only fail
+    % thus, we insert a fresh variable and check the unification with the argument term later on
     length(NewArgs, Lenny),
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
