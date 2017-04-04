@@ -1,7 +1,7 @@
 :- module(plspec,[spec_pre/2,spec_post/3,spec_invariant/2,valid/2,
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4,
                   setup_uber_check/3,which_posts/5,check_posts/3,
-                  some/2, error_not_matching_any_pre/3,
+                  plspec_some/2, error_not_matching_any_pre/3,
                   set_error_handler/1]).
                   
 :- use_module(library(plunit)).
@@ -370,14 +370,14 @@ test(and) :-
 
 
 %% term expansion
-:- meta_predicate some(1, +).
-some(Goal, List) :-
-    some1(List, Goal).
-some1([], _) :- fail.
-some1([H|_], Goal) :-
+:- meta_predicate plspec_some(1, +).
+plspec_some(Goal, List) :-
+    plspec_some1(List, Goal).
+plspec_some1([], _) :- fail.
+plspec_some1([H|_], Goal) :-
     call(Goal,H), !.
-some1([_|T], Goal) :-
-    some1(T, Goal).
+plspec_some1([_|T], Goal) :-
+    plspec_some1(T, Goal).
 
 
 spec_matches([], true, []).
@@ -401,7 +401,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     length(NewArgs, Lenny),
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
-               (plspec:some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs)),
+               (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs)),
                (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(pred_specs_args(Head, InvariantSpec, Args)),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
