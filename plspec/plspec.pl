@@ -33,14 +33,24 @@ spec_post(Pred,PreSpec,PostSpec) :-
     (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
 
+spec_exists(X) :- spec_indirection(X, _).
+spec_exists(X) :- spec_predicate(X, _).
+spec_exists(X) :- spec_predicate_recursive(X, _).
+
 defspec(SpecId, OtherSpec) :-
-    assert(spec_indirection(SpecId, OtherSpec)).
+    (spec_exists(SpecId)
+      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+       ; assert(spec_indirection(SpecId, OtherSpec))).
 :- meta_predicate defspec_pred(+, 1).
 defspec_pred(SpecId, Predicate) :-
-    assert(spec_predicate(SpecId, Predicate)).
+    (spec_exists(SpecId)
+      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+       ; assert(spec_predicate(SpecId, Predicate))).
 :- meta_predicate defspec_pred_recursive(+, 1).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
-    assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant)).
+    (spec_exists(SpecId)
+      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+       ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
 
 
 
