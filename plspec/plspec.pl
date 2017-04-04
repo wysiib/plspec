@@ -66,7 +66,7 @@ spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
 
 true(_).
-atom(X, X) :- atom(X).
+atom(X, Y) :- atom(Y), X = Y.
 
 spec_indirection(int, integer).
 spec_indirection([X], list(X)).
