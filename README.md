@@ -147,6 +147,7 @@ int(odd, X) :- 1 is X mod 2.
 ```
 
 Then, you can define whether your integers are even or odd!
+However, you should ensure that these predicates *NEVER* bind any variables. 
 
 ```
 ?- valid(int(even), 0). 
@@ -170,6 +171,7 @@ You would call it like `defspec_pred_recursive(Spec, ValidPred, MergePred, Merge
 I will talk about `ValidPred` first.
 
 In order to verify your Spec, we will call `ValidPred`. The first arguments are those you wire directly in the `defspec`.
+Again, you should ensure that this predicate *NEVER* binds any variables. 
 We will append three arguments. The first one is the value we are looking it. The second one is a variable where you shall return us a list of specs you want us to check later on. The last one is a list of variables that should match these specs. These lists, thus, must have the same length.
 
 The idea is that you will only check a small part there. We implemented, for example, `compound` this way. `compound` will only check that the functor matches and delays the validation of its arguments until later. We will do that for you, somewhere in our code. Don't worry about that. The contract is that you will not receive variables during invariant checks.
