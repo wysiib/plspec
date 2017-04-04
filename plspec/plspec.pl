@@ -6,6 +6,7 @@
                   
 :- use_module(library(plunit)).
 :- use_module(library(lists), [maplist/2, maplist/3, maplist/4]).
+:- use_module(library(terms), [variant/2]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/2.
@@ -298,14 +299,18 @@ valid(Spec, Val) :-
 
 evaluate_spec_match(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate), !,
+    copy_term(Val, Vali),
     (call(Predicate, Val)
      -> Res = true
-      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))).
+      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
+    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant), !,
+    copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
-      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))).
+      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
+    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec), !,
     evaluate_spec_match(NewSpec, Val, Res).
