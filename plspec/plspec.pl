@@ -55,6 +55,8 @@ defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
 
 
 spec_predicate(atomic, atomic).
+spec_predicate(atom, atom).
+spec_predicate(atom(X), atom(X)).
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(var, var).
@@ -63,6 +65,7 @@ spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
 
 true(_).
+atom(X, X) :- atom(X).
 
 spec_indirection(int, integer).
 spec_indirection([X], list(X)).
