@@ -89,8 +89,11 @@ set_error_handler(Pred) :-
 
 %% built-in recursive specs
 compound(Spec, Val, NewSpecs, NewVars) :-
-    Spec =.. [Functor|NewSpecs],
-    Val =.. [Functor|NewVars].
+    compound(Val),
+    Val =.. [Functor|NewVars],
+    length(NewVars, Len),
+    length(NewSpecs, Len),
+    Spec =.. [Functor|NewSpecs].
 
 list(Spec, Val, NewSpecs, NewVals) :-
     nonvar(Val), list1(Val, Spec, NewSpecs, NewVals).
@@ -178,7 +181,8 @@ or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
 
 and([], [], true).
 and([S|Specs], [V|Vals], Res) :-
-    (evaluate_spec_match(S, V, true)
+    evaluate_spec_match(S, V, X),
+    (X == true
      -> and(Specs, Vals, Res)
       ; Res = fail(spec_not_matched(spec(S), value(V)))).
 or2([HSpec|TSpec], [HVal|TVal]) :-
@@ -295,26 +299,34 @@ check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
     
 
 valid(Spec, Val) :-
-    evaluate_spec_match(Spec, Val, true).
+    evaluate_spec_match(Spec, Val, X),
+    X == true.
 
 evaluate_spec_match(Spec, Val, Res) :-
-    spec_predicate(Spec, Predicate), !,
+    spec_exists(Spec),
+    evaluate_spec_match_aux(Spec, Val, Res).
+evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
+    nonvar(Spec),
+    \+ spec_exists(Spec),
+    format('plspec: spec ~w not found~n', [Spec]).
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    spec_predicate(Spec, Predicate),
     copy_term(Val, Vali),
     (call(Predicate, Val)
      -> Res = true
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
-evaluate_spec_match(Spec, Val, Res) :-
-    spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant), !,
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
-evaluate_spec_match(Spec, Val, Res) :-
-    spec_indirection(Spec, NewSpec), !,
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
-evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))).
+
 
 
 
@@ -423,7 +435,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
                (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs)),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(pred_specs_args(Head, InvariantSpec, Args)),InvariantSpec,Args) ; true),
+               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(pred_specs_args(Head, InvariantSpec, Args)),InvariantSpec,Args) ; true), 
                % unify with pattern matching of head
                NewArgs = Args,
                % gather all matching postconditions
