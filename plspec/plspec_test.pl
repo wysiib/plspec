@@ -238,7 +238,7 @@ test(nonconform2, [throws(_)]) :-
 
 
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
-                            compound(empty)])).
+                            atom(empty)])).
 
 :- begin_tests(trees).
 
