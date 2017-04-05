@@ -179,11 +179,14 @@ or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
     or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
 
-and([], [], true).
-and([S|Specs], [V|Vals], Res) :-
+and([], [], fail(spec_not_matched(spec(S), value(V)))).
+and([SpecH|SpecT], [ValH|ValT], Res) :-
+    and_aux([SpecH|SpecT], [ValH|ValT], Res).
+and_aux([], [], true).
+and_aux([S|Specs], [V|Vals], Res) :-
     evaluate_spec_match(S, V, X),
     (X == true
-     -> and(Specs, Vals, Res)
+     -> and_aux(Specs, Vals, Res)
       ; Res = fail(spec_not_matched(spec(S), value(V)))).
 or2([HSpec|TSpec], [HVal|TVal]) :-
     (evaluate_spec_match(HSpec, HVal, true)
