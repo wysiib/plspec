@@ -36,7 +36,7 @@ spec_post(Pred,PreSpec,PostSpec) :-
 
 spec_exists(X) :- spec_indirection(X, _).
 spec_exists(X) :- spec_predicate(X, _).
-spec_exists(X) :- spec_predicate_recursive(X, _).
+spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
 
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId)
