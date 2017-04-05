@@ -237,10 +237,6 @@ test(nonconform2, [throws(_)]) :-
 
 
 
-:- defspec_pred(atom_named(X), atom_named(X)).
-
-atom_named(X, X).
-
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
                             compound(empty)])).
 
