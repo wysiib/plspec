@@ -73,7 +73,7 @@ spec_indirection([X], list(X)).
 
 spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
 spec_predicate_recursive(list(X), list(X), and, and_invariant).
-spec_predicate_recursive(and(X), spec_and(X), and, and_invariant).
+spec_predicate_recursive(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
 spec_predicate_recursive(one_of(X), spec_and(X), or, or_invariant).
 
@@ -131,6 +131,7 @@ test(list3) :-
 
 
 spec_and(SpecList, Var, SpecList, VarRepeated) :-
+    SpecList \= [],
     %% this is actually repeat
     length(SpecList,L),
     length(VarRepeated,L),
@@ -138,9 +139,8 @@ spec_and(SpecList, Var, SpecList, VarRepeated) :-
 
 :- begin_tests(spec_and).
 
-test(empty) :-
-    spec_and([], Var, List, VarRepeated), !,
-    var(Var), List == [], VarRepeated == [].
+test(empty_and, [throws(_)]) :-
+    valid(and([], 1)).
 
 test(instantiated_var) :-
     spec_and([int, atomic], X, List, VarRepeated), !,
@@ -179,14 +179,11 @@ or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
     or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
 
-and([], [], fail(spec_not_matched(spec(S), value(V)))).
-and([SpecH|SpecT], [ValH|ValT], Res) :-
-    and_aux([SpecH|SpecT], [ValH|ValT], Res).
-and_aux([], [], true).
-and_aux([S|Specs], [V|Vals], Res) :-
+and([], [], true).
+and([S|Specs], [V|Vals], Res) :-
     evaluate_spec_match(S, V, X),
     (X == true
-     -> and_aux(Specs, Vals, Res)
+     -> and(Specs, Vals, Res)
       ; Res = fail(spec_not_matched(spec(S), value(V)))).
 or2([HSpec|TSpec], [HVal|TVal]) :-
     (evaluate_spec_match(HSpec, HVal, true)
