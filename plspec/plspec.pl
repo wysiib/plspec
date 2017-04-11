@@ -9,7 +9,7 @@
 :- use_module(library(terms), [variant/2]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
-:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4.
+:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
 %% set up facts
 
@@ -37,6 +37,7 @@ spec_post(Pred,PreSpec,PostSpec) :-
 spec_exists(X) :- spec_indirection(X, _).
 spec_exists(X) :- spec_predicate(X, _).
 spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
+spec_exists(X) :- spec_connective(X, _, _, _).
 
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId)
@@ -52,6 +53,12 @@ defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId)
       -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
+:- meta_predicate defspec_connective(+, 1).
+defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
+    (spec_exists(SpecId)
+      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+       ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
+
 
 
 
@@ -73,9 +80,10 @@ spec_indirection([X], list(X)).
 
 spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
 spec_predicate_recursive(list(X), list(X), and, and_invariant).
-spec_predicate_recursive(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
-spec_predicate_recursive(one_of(X), spec_and(X), or, or_invariant).
+
+spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
+spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 :- dynamic error_handler/1.
 error_handler(throw).
@@ -214,6 +222,11 @@ setup_check_aux(Spec, Location, Val, Res) :-
     freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
                     -> call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
                     ;  reason(Spec, Location, Val, Res))).
+setup_check_aux(Spec, Location, Val, Res) :-
+    spec_connective(Spec, Pred, _MergePred, MergePredInvariant), !,
+    freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
+                    -> call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
+                    ;  reason(Spec, Location, Val, Res))).
 setup_check_aux(Spec, Location, _, fail(spec_not_found(spec(Spec), location(Location)))).
 
 :- begin_tests(invariants).
@@ -318,6 +331,14 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
+    copy_term(Val, Vali),
+    (call(Predicate, Val, NewSpecs, NewVals)
+     -> call(MergePred, NewSpecs, NewVals, Res)
+      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
+    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    nonvar(Spec),
+    spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
