@@ -99,6 +99,7 @@ set_error_handler(Pred) :-
 compound(Spec, Val, NewSpecs, NewVars) :-
     compound(Val),
     Val =.. [Functor|NewVars],
+    Functor \= '[|]',
     length(NewVars, Len),
     length(NewSpecs, Len),
     Spec =.. [Functor|NewSpecs].
