@@ -315,13 +315,13 @@ valid(Spec, Val) :-
     evaluate_spec_match(Spec, Val, X),
     X == true.
 
-evaluate_spec_match(Spec, Val, Res) :-
-    spec_exists(Spec),
-    evaluate_spec_match_aux(Spec, Val, Res).
 evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
     nonvar(Spec),
-    \+ spec_exists(Spec),
+    \+ spec_exists(Spec), !,
     format('plspec: spec ~w not found~n', [Spec]).
+evaluate_spec_match(Spec, Val, Res) :-
+    %spec_exists(Spec),
+    evaluate_spec_match_aux(Spec, Val, Res).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate),
     copy_term(Val, Vali),
