@@ -104,9 +104,10 @@ spec_predicate(atom(X), atom(X)).
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(var, var).
-spec_predicate(ground, ground).
-spec_predicate(nonvar, nonvar).
-spec_predicate(any, true).
+%% HACK: these should not be generated when trying to infer a spec (pk, 2017-04-11)
+spec_predicate(X, ground) :- X == ground. % hacks for spec inference
+spec_predicate(X, nonvar) :- X == nonvar.
+spec_predicate(X, true) :- X == any.
 
 true(_).
 atom(X, Y) :- atom(Y), X = Y.
