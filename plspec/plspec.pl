@@ -5,7 +5,7 @@
                   set_error_handler/1]).
                   
 :- use_module(library(plunit)).
-:- use_module(library(lists), [maplist/2, maplist/3, maplist/4]).
+:- use_module(library(lists), [maplist/2, maplist/3, maplist/4, is_list/1]).
 :- use_module(library(terms), [variant/2]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
