@@ -9,7 +9,7 @@
 :- use_module(library(terms), [variant/2]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
-:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/2.
+:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4.
 
 %% set up facts
 
