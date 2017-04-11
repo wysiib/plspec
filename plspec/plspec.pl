@@ -157,7 +157,8 @@ test(instantiated_var) :-
 
 :- end_tests(spec_and).
 
-tuple(SpecList, VarList, SpecList, VarList).
+tuple(SpecList, VarList, SpecList, VarList) :-
+    is_list(SpecList).
 
 
 %% merge recursive specs
