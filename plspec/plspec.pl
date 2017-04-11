@@ -411,7 +411,14 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
+    %% HACK: even more restriction for generation of specs
+    (var(Spec) -> WasVar = true ; WasVar = false),
     spec_indirection(Spec, NewSpec),
+    %% HACK: should be read in context of commented line above
+    % only, if an indirection is not a connective, it is just a plain alias
+    % thus, it should not be expanded and only one of the aliases
+    % should be generated
+    (WasVar == true, \+ spec_connective(NewSpec,_,_,_) -> fail ; true),
     evaluate_spec_match(NewSpec, Val, Res).
 
 
