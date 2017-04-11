@@ -1,5 +1,5 @@
 :- module(plspec,[spec_pre/2,spec_post/3,spec_invariant/2,valid/2,
-                  defspec/2, defspec_pred/2, defspec_pred_recursive/4,
+                  defspec/2, defspec_pred/2, defspec_pred_recursive/4, defspec_connective/4,
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   plspec_some/2, error_not_matching_any_pre/3,
                   set_error_handler/1]).
