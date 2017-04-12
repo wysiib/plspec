@@ -174,13 +174,19 @@ In order to verify your Spec, we will call `ValidPred`. The first arguments are 
 Again, you should ensure that this predicate *NEVER* binds any variables. 
 We will append three arguments. The first one is the value we are looking it. The second one is a variable where you shall return us a list of specs you want us to check later on. The last one is a list of variables that should match these specs. These lists, thus, must have the same length.
 
-The idea is that you will only check a small part there. We implemented, for example, `compound` this way. `compound` will only check that the functor matches and delays the validation of its arguments until later. We will do that for you, somewhere in our code. Don't worry about that. The contract is that you will not receive variables during invariant checks.
+The idea is that you will only check a small part there. We implemented, for example, `compound` this way. `compound` will only check that the functor matches and delays the validation of its arguments until later. We will do that for you, somewhere in our code. Don't worry about that. The contract is that you will not receive variables during invariant checks. If you spec does not consume any part of the data, like `one_of` or `and`, continue reading but use the predicate below.
 
 `MergePred` shall merge fully instantiated values. Arguments appended are these lists you returned, first the specs, second the values and lastly a variable that should be bound to either `true` or `false(_)`. `MergePred` shall never fail. I have implemented `and` for, e.g., compounds, as well as `or` for `one_of`.
 
 Analogously, `MergePredInvariant` deals with values which may not be fully instantiated. In a `compound`, the arguments may be variables. You return us these variables, we will do the callback when they get bound. Of course, this is co-routine based. This is the fun part.
 As for `MergePred`, I implemented `and_invariant` as well as `or_invariant`.
 You want anything else, you deal with it yourself. *plspec* allows you to do so. If you want exactly *n* out of *m* specs to be fulfilled, be my guest. But you implement it.
+
+
+#### defspec_connective/4
+
+If you want to define some kind of logical connective between multiple specs, this is the predicate for you. It works exactly as `defspec_pred_recursive/4`. It is a separate predicate because `ValidPred` will do different things here, i.e. it will not consume any part of the data.
+
 
 ### register custom error handler
 
