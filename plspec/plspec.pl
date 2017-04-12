@@ -2,6 +2,7 @@
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4, defspec_connective/4,
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   plspec_some/2, error_not_matching_any_pre/3,
+                  enable_spec_check/1, enable_all_spec_checks/0,
                   set_error_handler/1]).
                   
 :- use_module(library(plunit)).
@@ -59,6 +60,14 @@ defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
       -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
        ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
 
+
+:- dynamic check_predicate/1.
+enable_spec_check([H|T]) :- !,
+    maplist(enable_check, [H|T]).
+enable_spec_check(X) :-
+    assert(check_predicate(X)).
+enable_all_spec_checks :-
+    assert(check_predicate(_)).
 
 
 
@@ -447,47 +456,3 @@ error_not_matching_any_pre(Functor, Args, PreSpecs) :-
     call(X, spec_violated(specs(PreSpecs), values(Args), location(Functor))). 
 
 
-
-expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
-    Head =.. [Functor|Args],
-    length(Args, Lenny),
-    %% newargs: only relevant if head implements pattern matching:
-    % consider foo(foo). then the call 'foo(bar)' would not violate the spec but only fail
-    % thus, we insert a fresh variable and check the unification with the argument term later on
-    length(NewArgs, Lenny),
-    NewHead =.. [Functor|NewArgs],
-    NewBody = (% determine if at least one precondition is fulfilled
-               (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor, NewArgs, PreSpecs)),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(pred_specs_args(Head, InvariantSpec, Args)),InvariantSpec,Args) ; true), 
-               % unify with pattern matching of head
-               NewArgs = Args,
-               % gather all matching postconditions
-               plspec:which_posts(PrePostSpecs,PostSpecs,Args,ValidPrePostSpecs,PostsToCheck),
-               Goal,
-               lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck)).
-
-should_expand(A, F, Arity, PreSpecs) :-
-    functor(A,F,Arity),
-    findall(PreSpec, le_spec_pre(F/Arity,PreSpec), PreSpecs).
-
-expandeur(':-'(A, B), ':-'(NA, NB)) :-
-    should_expand(A, F, Arity, PreSpecs), PreSpecs \= [], !,
-    findall(InvSpec,le_spec_invariant(F/Arity,InvSpec),InvariantSpecOrEmpty),
-    findall(PreSpec2,le_spec_post(F/Arity,PreSpec2,_),PrePostSpecs),
-    findall(PostSpec,le_spec_post(F/Arity,_,PostSpec),PostSpecs),
-    expansion(A,B,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NA,NB).
-
-do_expand(':-'(A, B), ':-'(NA, NB)) :-
-    expandeur(':-'(A, B), ':-'(NA, NB)).
-do_expand(A, ':-'(NA, NB)) :-
-    expandeur(':-'(A, true), ':-'(NA, NB)).
-do_expand(A,A).
-
-:- multifile term_expansion/2.
-user:term_expansion(A, B) :-
-    do_expand(A,B).
-
-:- multifile user:term_expansion/6.
-user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
-    nonmember(plspec_token, Ids),
-    do_expand(Term1, Term2).
