@@ -4,6 +4,29 @@ Inspired by [clojure.spec](https://clojure.org/about/spec), *plspec* aims to pro
 
 ## Get started
 
+First, use `plspec`.
+Then, decide what you want to check.
+Finally, use `plspec_checker` if you want runtime checks.
+
+### Setup 
+```
+% 1.
+:- use_module(plspec).  % get spec_pre, spec_invariant, spec_post and all kinds of defspec
+
+% 2.
+:- enable_spec_check(foo/2). % flag foo/2 for runtime checks
+% or
+:- enable_spec_check([foo/2, bar/3]). % flag all predicates in the list for runtime checks
+% or
+:- enable_all_spec_checks. % flag all spec'd predicates for runtime checks
+
+% 3. (optionally)
+:- use_module(plspec_checker). % turns on runtime checks for flagged predicates (via term expansion)
+```
+
+
+## Semantics
+
 Specs always have to be written somewhere above the predicate (because of term expansion magic).
 You can annotate your predicate like this:
 
