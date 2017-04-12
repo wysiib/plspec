@@ -63,7 +63,7 @@ defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
 
 :- dynamic check_predicate/1.
 enable_spec_check([H|T]) :- !,
-    maplist(enable_check, [H|T]).
+    maplist(enable_spec_check, [H|T]).
 enable_spec_check(X) :-
     assert(check_predicate(X)).
 enable_all_spec_checks :-
