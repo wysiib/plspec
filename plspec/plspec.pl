@@ -20,16 +20,20 @@ le_spec_invariant(Pred, Spec) :-
     le_spec_invariant(Pred, _, Spec).
 
 spec_pre(Pred,PreSpec) :-
+    (ground(PreSpec) -> true ; format('plspec: a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
     Pred = _/Arity,
     (length(PreSpec, Arity) -> true ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
     assert(le_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
+    (ground(InvariantSpec) -> true ; format('plspec: an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
     Pred = _/Arity,
     (length(InvariantSpec, Arity) -> true ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
      -> assert(le_spec_invariant(Pred, Names, Specs))
       ; assert(le_spec_invariant(Pred, InvariantSpec))).
 spec_post(Pred,PreSpec,PostSpec) :-
+    (ground(PreSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+    (ground(PostSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
     Pred = _/Arity,
     (length(PreSpec, Arity) -> true ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
     (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
