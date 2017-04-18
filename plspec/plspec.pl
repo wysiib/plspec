@@ -122,7 +122,34 @@ spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 :- dynamic error_handler/1.
-error_handler(throw).
+error_handler(plspec_default_error_handler).
+
+pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
+    format('~n! plspec: a postcondition was violated!~n', []),
+    format('! plspec: the matched precondition was "~w"~n', [Pre]),
+    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
+    format('! plspec: the offending value was: ~w~n', [Val]).
+pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
+    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
+    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
+    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
+pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
+    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
+    format('! plspec: the spec was: ~w~n', [T]),
+    format('! plspec: however, the value was bound to: ~w~n', [V]).
+pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
+    %% TODO: not all failures include a location
+    format('~n! plspec: spec "~w" was not found~n', [Spec]).
+pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
+    format('~n! plspec: a spec for ~w was not found~n', [Location]),
+    format('! plspec: spec "~w" was not found~n', [Spec]).
+pretty_print_error(X) :-
+    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
+    format('! plspec: ~w.~n', [X]).
+
+plspec_default_error_handler(X) :-
+    pretty_print_error(X),
+    throw(plspec_error).
 
 :- meta_predicate set_error_handler(+, 0).
 set_error_handler(Pred) :-
@@ -216,7 +243,7 @@ and_invariant(Specs, Vals, Location, R) :-
     invariand(Specs, Vals, Location, R).
 
 or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
-    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = fail(Reason)) ; true)).
+    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason) ; true)).
 or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
     setup_check(Location, ResOption, H, V),
     freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
@@ -329,7 +356,7 @@ test(one_of4, throws(_)) :-
 
 reason(T, Location, V, Reason) :-
     copy_term(Location, LocationWithoutAttributes, _Goals),
-    Reason = spec_violated(spec(T), value(V), location(LocationWithoutAttributes)).
+    Reason = fail(spec_violated(spec(T), value(V), location(LocationWithoutAttributes))).
 
 
 %% non-coroutine non-magic
@@ -480,6 +507,6 @@ spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-
     error_handler(X),
-    call(X, spec_violated(specs(PreSpecs), values(Args), location(Functor))). 
+    call(X, fail(prespec_violated(specs(PreSpecs), values(Args), location(Functor)))).
 
 
