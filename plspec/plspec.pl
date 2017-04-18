@@ -3,6 +3,7 @@
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   plspec_some/2, error_not_matching_any_pre/3,
                   enable_spec_check/1, enable_all_spec_checks/0,
+                  spec_set_debug_mode/0,
                   set_error_handler/1]).
                   
 :- use_module(library(plunit)).
@@ -43,25 +44,47 @@ spec_exists(X) :- spec_indirection(X, _).
 spec_exists(X) :- spec_predicate(X, _).
 spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
 spec_exists(X) :- spec_connective(X, _, _, _).
+spec_exists(X, indirection(Y)) :- spec_indirection(X, Y).
+spec_exists(X, predicate(Y)) :- spec_predicate(X, Y).
+spec_exists(X, predicate_recursive(A,B,C)) :- spec_predicate_recursive(X, A, B, C).
+spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C).
+
+:- dynamic spec_debug/0.
+debug_format(Format, Args) :-
+    (spec_debug -> format(Format, Args) ; true).
+
+spec_set_debug_mode :-
+    assert(spec_debug).
 
 defspec(SpecId, OtherSpec) :-
-    (spec_exists(SpecId)
-      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+    (spec_exists(SpecId, Existing)
+      %% we use variant in order to determine whether it is actually the same spec;
+      % for example, consider defspec(foo(X,Y), bar(X,Y)), defspec(foo(X,Y), bar(Y,X)).
+      % we do not want to unify X = Y but also notice these are not the same specs.
+      -> (variant(spec(SpecId, Existing), spec(SpecId, indirection(OtherSpec)))
+          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
+           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_indirection(SpecId, OtherSpec))).
 :- meta_predicate defspec_pred(+, 1).
 defspec_pred(SpecId, Predicate) :-
-    (spec_exists(SpecId)
-      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+    (spec_exists(SpecId, Existing)
+      -> (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
+          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
+           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_predicate(SpecId, Predicate))).
 :- meta_predicate defspec_pred_recursive(+, 1).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
-    (spec_exists(SpecId)
-      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+    (spec_exists(SpecId, Existing)
+      -> (variant(spec(SpecId, Existing), spec(SpecId, predicate_recursive(Predicate, MergePred, MergePredInvariant)))
+          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
+           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
 :- meta_predicate defspec_connective(+, 1).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
-    (spec_exists(SpecId)
-      -> format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+    (spec_exists(SpecId, Existing)
+      -> (variant(spec(SpecId, Existing), spec(SpecId, connective(Predicate, MergePred, MergePredInvariant)))
+          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId]))
+           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
        ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
 
 
