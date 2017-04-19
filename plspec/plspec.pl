@@ -56,6 +56,7 @@ debug_format(Format, Args) :-
 spec_set_debug_mode :-
     assert(spec_debug).
 
+%% TODO: would asserta be better for inference?
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId, Existing)
       %% we use variant in order to determine whether it is actually the same spec;
