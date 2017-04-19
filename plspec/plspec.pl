@@ -98,11 +98,11 @@ enable_all_spec_checks :-
 
 
 
-spec_predicate(atomic, atomic).
-spec_predicate(atom, atom).
 spec_predicate(atom(X), atom(X)).
 spec_predicate(integer, integer).
+spec_predicate(atom, atom).
 spec_predicate(number, number).
+spec_predicate(atomic, atomic).
 spec_predicate(var, var).
 %% HACK: these should not be generated when trying to infer a spec (pk, 2017-04-11)
 spec_predicate(X, ground) :- X == ground. % hacks for spec inference
