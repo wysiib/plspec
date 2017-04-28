@@ -227,9 +227,9 @@ tuple(SpecList, VarList, SpecList, VarList) :-
 %% merge recursive specs
 both_eventually_true(V1, V2, Res) :-
     when((nonvar(V1); nonvar(V2)),
-          (nonvar(V1), V1 = true -> freeze(V2, Res = V2) %% look at the other co-routined variable
+          (V1 == true -> freeze(V2, Res = V2) %% look at the other co-routined variable
          ; nonvar(V1) -> Res = V1 %% since it is not true
-         ; nonvar(V2), V2 = true -> freeze(V1, Res = V1)
+         ; V2 == true -> freeze(V1, Res = V1)
          ; nonvar(V2) -> Res = V2)).
 
 
