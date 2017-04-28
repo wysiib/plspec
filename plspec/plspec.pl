@@ -236,7 +236,7 @@ both_eventually_true(V1, V2, Res) :-
 invariand([], [], _, true).
 invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
     setup_check(Location, ResElement,HSpec, HVal),
-    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)),
+    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)), % TODO: do we need this freeze?
     both_eventually_true(ResElement, ResTail, R).
 
 and_invariant(Specs, Vals, Location, R) :-
