@@ -389,18 +389,19 @@ evaluate_spec_match(Spec, Val, Res) :-
     evaluate_spec_match_aux(Spec, Val, Res).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate),
+    %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
     (call(Predicate, Val)
      -> Res = true
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
@@ -408,7 +409,7 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
