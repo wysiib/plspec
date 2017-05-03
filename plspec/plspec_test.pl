@@ -3,9 +3,13 @@
 :- enable_all_spec_checks.
 :- use_module(plspec_checker).
 
-:- plspec:spec_pre(my_member/2,[any,[any]]).
-:- plspec:spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
-:- plspec:spec_post(my_member/2,[any,var],[any,[any]]).
+%:- plspec:spec_pre(my_member/2,[any,[any]]).
+:- spec_pre(my_member/2, [any, var]).
+:- spec_pre(my_member/2, [var, list(any)]).
+:- spec_pre(my_member/2, [any, list(any)]).
+:- spec_invariant(my_member/2, [any, list(any)]).
+:- spec_post(my_member/2, [var, any], [list(any), any]).
+:- spec_post(my_member/2, [list(X), var], [list(X), X]).
 my_member(E,[E|_]).
 my_member(E,[_|T]) :-
     my_member(E,T).

@@ -1,9 +1,11 @@
 :- module(plspec,[spec_pre/2,spec_post/3,spec_invariant/2,valid/2,
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4, defspec_connective/4,
+                  get_spec_with_variables/2,
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   plspec_some/2, error_not_matching_any_pre/3,
                   enable_spec_check/1, enable_all_spec_checks/0,
                   spec_set_debug_mode/0,
+                  spec_exists/2,
                   set_error_handler/1]).
                   
 :- use_module(library(plunit)).
@@ -158,6 +160,9 @@ set_error_handler(Pred) :-
     retractall(error_handler(_)),
     assert(error_handler(Pred)).
 
+get_spec_with_variables(Spec, SpecWithVariables) :-
+    spec_predicate_recursive(Spec, Predicate, _, _),
+    call(Predicate, SpecWithVariables). % TODO: check if implemented?
 
 
 %% built-in recursive specs
@@ -168,6 +173,12 @@ compound(Spec, Val, NewSpecs, NewVars) :-
     length(NewVars, Len),
     length(NewSpecs, Len),
     Spec =.. [Functor|NewSpecs].
+compound(Spec, InnerSpecsReplacedWithVariables) :-
+    compound(Spec),
+    Spec =.. [Functor|InnerSpecs],
+    length(InnerSpecs, N),
+    length(Variables, N),
+    InnerSpecsReplacedWithVariables =.. [Functor|Variables].
 
 list(Spec, Val, NewSpecs, NewVals) :-
     nonvar(Val), list1(Val, Spec, NewSpecs, NewVals).
@@ -182,6 +193,9 @@ list1(L, Spec, [Spec|ST], [H|VT]) :-
 list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
+list(_, _).
+
+
 
 :- begin_tests(lists).
 
@@ -224,6 +238,9 @@ test(instantiated_var) :-
 
 tuple(SpecList, VarList, SpecList, VarList) :-
     is_list(VarList).
+tuple(SpecList, InnerSpecsReplacedWithVariables) :-
+    length(SpecList, N),
+    length(InnerSpecsReplacedWithVariables, N).
 
 
 %% merge recursive specs
