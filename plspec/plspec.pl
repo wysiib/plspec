@@ -147,6 +147,7 @@ pretty_print_error(X) :-
     format('~n! plspec: plspec raised an error that is unhandled.~n', []),
     format('! plspec: ~w.~n', [X]).
 
+:- public plspec_default_error_handler/1.
 plspec_default_error_handler(X) :-
     pretty_print_error(X),
     throw(plspec_error).
@@ -159,6 +160,7 @@ set_error_handler(Pred) :-
 
 
 %% built-in recursive specs
+:- public compound/4.
 compound(Spec, Val, NewSpecs, NewVars) :-
     compound(Val),
     Val =.. [Functor|NewVars],
@@ -220,6 +222,7 @@ test(instantiated_var) :-
 
 :- end_tests(spec_and).
 
+:- public tuple/4.
 tuple(SpecList, VarList, SpecList, VarList) :-
     is_list(VarList).
 
@@ -239,6 +242,7 @@ invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
     freeze(TVal, invariand(TSpec, TVal, Location, ResTail)),
     both_eventually_true(ResElement, ResTail, R).
 
+:- public and_invariant/4.
 and_invariant(Specs, Vals, Location, R) :-
     invariand(Specs, Vals, Location, R).
 
@@ -249,9 +253,11 @@ or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
     freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
     or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
 
+:- public or_invariant/4.
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
     or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
 
+:- public and/3.
 and([], [], true).
 and([S|Specs], [V|Vals], Res) :-
     evaluate_spec_match(S, V, X),
@@ -262,6 +268,7 @@ or2([HSpec|TSpec], [HVal|TVal]) :-
     (evaluate_spec_match(HSpec, HVal, true)
       -> true
       ;  or2(TSpec, TVal)).
+:- public or/3.
 or(Specs, Vals, true) :-
     or2(Specs, Vals), !.
 or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
@@ -495,7 +502,7 @@ plspec_some1([H|_], Goal) :-
 plspec_some1([_|T], Goal) :-
     plspec_some1(T, Goal).
 
-
+:- public spec_matches/3. %THIS SEEMS NOT USED - TO DO: investigate
 spec_matches([], true, []).
 spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
     evaluate_spec_match(Spec, Arg, R),
