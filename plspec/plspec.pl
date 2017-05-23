@@ -4,7 +4,9 @@
                   plspec_some/2, error_not_matching_any_pre/3,
                   enable_spec_check/1, enable_all_spec_checks/0,
                   spec_set_debug_mode/0,
-                  set_error_handler/1]).
+                  set_error_handler/1,
+                  le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
+               ]).
                   
 :- use_module(library(plunit)).
 :- use_module(library(lists), [maplist/2, maplist/3, maplist/4, is_list/1]).
@@ -72,14 +74,14 @@ defspec_pred(SpecId, Predicate) :-
           -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
            ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_predicate(SpecId, Predicate))).
-:- meta_predicate defspec_pred_recursive(+, 1).
+:- meta_predicate defspec_pred_recursive(+, 3,3,4).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
       -> (variant(spec(SpecId, Existing), spec(SpecId, predicate_recursive(Predicate, MergePred, MergePredInvariant)))
           -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
            ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
-:- meta_predicate defspec_connective(+, 1).
+:- meta_predicate defspec_connective(+, 3,3,4).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
       -> (variant(spec(SpecId, Existing), spec(SpecId, connective(Predicate, MergePred, MergePredInvariant)))
@@ -108,7 +110,9 @@ spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
 
+:- public true/1.
 true(_).
+:- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
 
 spec_indirection(int, integer).
@@ -152,7 +156,7 @@ plspec_default_error_handler(X) :-
     pretty_print_error(X),
     throw(plspec_error).
 
-:- meta_predicate set_error_handler(+, 0).
+:- meta_predicate set_error_handler(1).
 set_error_handler(Pred) :-
     retractall(error_handler(_)),
     assert(error_handler(Pred)).
