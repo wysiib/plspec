@@ -105,6 +105,7 @@ spec_predicate(atom, atom).
 spec_predicate(atom(X), atom(X)).
 spec_predicate(integer, integer).
 spec_predicate(number, number).
+spec_predicate(float, float).
 spec_predicate(var, var).
 spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
