@@ -151,6 +151,33 @@ pretty_print_error(X) :-
     format('~n! plspec: plspec raised an error that is unhandled.~n', []),
     format('! plspec: ~w.~n', [X]).
 
+plspec_default_error_handler(X) :-
+    pretty_print_error(X),
+    throw(plspec_error).
+
+pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
+    format('~n! plspec: a postcondition was violated!~n', []),
+    format('! plspec: the matched precondition was "~w"~n', [Pre]),
+    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
+    format('! plspec: the offending value was: ~w~n', [Val]).
+pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
+    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
+    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
+    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
+pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
+    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
+    format('! plspec: the spec was: ~w~n', [T]),
+    format('! plspec: however, the value was bound to: ~w~n', [V]).
+pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
+    %% TODO: not all failures include a location
+    format('~n! plspec: spec "~w" was not found~n', [Spec]).
+pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
+    format('~n! plspec: a spec for ~w was not found~n', [Location]),
+    format('! plspec: spec "~w" was not found~n', [Spec]).
+pretty_print_error(X) :-
+    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
+    format('! plspec: ~w.~n', [X]).
+
 :- public plspec_default_error_handler/1.
 plspec_default_error_handler(X) :-
     pretty_print_error(X),
@@ -234,16 +261,16 @@ tuple(SpecList, VarList, SpecList, VarList) :-
 %% merge recursive specs
 both_eventually_true(V1, V2, Res) :-
     when((nonvar(V1); nonvar(V2)),
-          (nonvar(V1), V1 = true -> freeze(V2, Res = V2) %% look at the other co-routined variable
+          (V1 == true -> freeze(V2, Res = V2) %% look at the other co-routined variable
          ; nonvar(V1) -> Res = V1 %% since it is not true
-         ; nonvar(V2), V2 = true -> freeze(V1, Res = V1)
+         ; V2 == true -> freeze(V1, Res = V1)
          ; nonvar(V2) -> Res = V2)).
 
 
 invariand([], [], _, true).
 invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
     setup_check(Location, ResElement,HSpec, HVal),
-    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)),
+    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)), % TODO: do we need this freeze?
     both_eventually_true(ResElement, ResTail, R).
 
 :- public and_invariant/4.
@@ -400,18 +427,19 @@ evaluate_spec_match(Spec, Val, Res) :-
     evaluate_spec_match_aux(Spec, Val, Res).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate),
+    %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
     (call(Predicate, Val)
      -> Res = true
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
@@ -419,7 +447,7 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (variant(Val, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
