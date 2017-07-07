@@ -7,7 +7,7 @@
                   set_error_handler/1,
                   le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
                ]).
-                  
+
 :- use_module(library(plunit)).
 :- use_module(library(lists), [maplist/2, maplist/3, maplist/4, is_list/1]).
 :- use_module(library(terms), [variant/2]).
@@ -151,10 +151,6 @@ pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
 pretty_print_error(X) :-
     format('~n! plspec: plspec raised an error that is unhandled.~n', []),
     format('! plspec: ~w.~n', [X]).
-
-plspec_default_error_handler(X) :-
-    pretty_print_error(X),
-    throw(plspec_error).
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
     format('~n! plspec: a postcondition was violated!~n', []),
@@ -413,7 +409,7 @@ check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
      -> check_posts(ArgT, PreT, PostT)
       ; error_handler(X),
         call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
-    
+
 
 valid(Spec, Val) :-
     evaluate_spec_match(Spec, Val, X),
@@ -542,7 +538,7 @@ spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
     (R == true
     -> spec_matches(ArgsT, Res, SpecT)
      ; Res = spec_not_matched(Spec, Arg, in(R))).
-    
+
 
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-
