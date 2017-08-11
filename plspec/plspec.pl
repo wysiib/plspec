@@ -245,9 +245,6 @@ spec_and(SpecList, Var, SpecList, VarRepeated) :-
 
 :- begin_tests(spec_and).
 
-test(empty_and, [throws(_)]) :-
-    valid(and([], 1)).
-
 test(instantiated_var) :-
     spec_and([int, atomic], X, List, VarRepeated), !,
     List == [int, atomic], VarRepeated == [X, X].
