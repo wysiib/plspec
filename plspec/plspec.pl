@@ -24,12 +24,12 @@ le_spec_invariant(Pred, Spec) :-
 
 spec_pre(Pred,PreSpec) :-
     (ground(PreSpec) -> true ; format('plspec: a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
-    Pred = _/Arity,
+    (Pred = _:_/Arity),
     (length(PreSpec, Arity) -> true ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
     assert(le_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
     (ground(InvariantSpec) -> true ; format('plspec: an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
-    Pred = _/Arity,
+    Pred = _:_/Arity,
     (length(InvariantSpec, Arity) -> true ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
      -> assert(le_spec_invariant(Pred, Names, Specs))
@@ -37,7 +37,7 @@ spec_invariant(Pred, InvariantSpec) :-
 spec_post(Pred,PreSpec,PostSpec) :-
     (ground(PreSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
     (ground(PostSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
-    Pred = _/Arity,
+    Pred = _:_/Arity,
     (length(PreSpec, Arity) -> true ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
     (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
@@ -129,6 +129,10 @@ spec_connective(one_of(X), spec_and(X), or, or_invariant).
 :- dynamic error_handler/1.
 error_handler(plspec_default_error_handler).
 
+plspec_default_error_handler(X) :-
+    pretty_print_error(X),
+    throw(plspec_error).
+
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
     format('~n! plspec: a postcondition was violated!~n', []),
     format('! plspec: the matched precondition was "~w"~n', [Pre]),
@@ -151,10 +155,6 @@ pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
 pretty_print_error(X) :-
     format('~n! plspec: plspec raised an error that is unhandled.~n', []),
     format('! plspec: ~w.~n', [X]).
-
-plspec_default_error_handler(X) :-
-    pretty_print_error(X),
-    throw(plspec_error).
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
     format('~n! plspec: a postcondition was violated!~n', []),

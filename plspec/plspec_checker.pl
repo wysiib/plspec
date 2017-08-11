@@ -19,31 +19,40 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
                Goal,
                lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck)).
 
-should_expand(A, F, Arity) :-
+should_expand(A, F, Module, Arity) :-
     functor(A,F,Arity),
     %trace,
-    (plspec:le_spec_pre(F/Arity, _) ; plspec:le_spec_invariant(F/Arity, _) ; plspec:le_spec_post(F/Arity, _, _)), !,
+    (plspec:le_spec_pre(Module:F/Arity, _) ; plspec:le_spec_invariant(Module:F/Arity, _) ; plspec:le_spec_post(Module:F/Arity, _, _)), !,
     plspec:check_predicate(F/Arity).
 
-expandeur(':-'(A, B), ':-'(NA, NB)) :-
-    should_expand(A, F, Arity), !,
-    findall(PreSpec, plspec:le_spec_pre(F/Arity,PreSpec), PreSpecs),
-    findall(InvSpec, plspec:le_spec_invariant(F/Arity,InvSpec),InvariantSpecOrEmpty),
-    findall(PreSpec2,plspec:le_spec_post(F/Arity,PreSpec2,_),PrePostSpecs),
-    findall(PostSpec,plspec:le_spec_post(F/Arity,_,PostSpec),PostSpecs),
+expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
+    should_expand(A, F, Module, Arity), !,
+    findall(PreSpec, plspec:le_spec_pre(Module:F/Arity,PreSpec), PreSpecs),
+    findall(InvSpec, plspec:le_spec_invariant(Module:F/Arity,InvSpec),InvariantSpecOrEmpty),
+    findall(PreSpec2,plspec:le_spec_post(Module:F/Arity,PreSpec2,_),PrePostSpecs),
+    findall(PostSpec,plspec:le_spec_post(Module:F/Arity,_,PostSpec),PostSpecs),
     expansion(A,B,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NA,NB).
 
-do_expand(':-'(A, B), ':-'(NA, NB)) :-
-    expandeur(':-'(A, B), ':-'(NA, NB)).
-do_expand(A, ':-'(NA, NB)) :-
-    expandeur(':-'(A, true), ':-'(NA, NB)).
-do_expand(A,A).
+do_expand(':-'(spec_pre(Predicate/Arity, Spec)), Module, ':-'(spec_pre(Module:Predicate/Arity, Spec))).
+do_expand(':-'(spec_invariant(Predicate/Arity, Spec)), Module, ':-'(spec_invariant(Module:Predicate/Arity, Spec))).
+do_expand(':-'(spec_post(Predicate/Arity, SpecPre, SpecPost)), Module, ':-'(spec_post(Module:Predicate/Arity, SpecPre, SpecPost))).
+do_expand(':-'(plspec:spec_pre(Predicate/Arity, Spec)), Module, ':-'(plspec:spec_pre(Module:Predicate/Arity, Spec))).
+do_expand(':-'(plspec:spec_invariant(Predicate/Arity, Spec)), Module, ':-'(plspec:spec_invariant(Module:Predicate/Arity, Spec))).
+do_expand(':-'(plspec:spec_post(Predicate/Arity, SpecPre, SpecPost)), Module, ':-'(plspec:spec_post(Module:Predicate/Arity, SpecPre, SpecPost))).
+do_expand(':-'(A, B), Module, ':-'(NA, NB)) :-
+    expandeur(':-'(A, B), Module, ':-'(NA, NB)).
+do_expand(A, Module, ':-'(NA, NB)) :-
+    expandeur(':-'(A, true), Module, ':-'(NA, NB)).
+do_expand(A, _Module, A).
+
 
 :- multifile term_expansion/2.
 user:term_expansion(A, B) :-
-    do_expand(A,B).
+    prolog_load_context(module, Module),
+    do_expand(A, Module, B).
 
 :- multifile user:term_expansion/6.
 user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
     nonmember(plspec_token, Ids),
-    do_expand(Term1, Term2).
+    prolog_load_context(module, Module),
+    do_expand(Term1, Module, Term2).
