@@ -91,7 +91,7 @@ The promise you make here is that if the second argument was a variable and `mem
 
 ### built-ins specs
 
-We have implemented a couple of specs:
+We have implemented a few specs:
 
 * `any` allows any value
 * `atomic` allows atomic values
@@ -209,6 +209,13 @@ You want anything else, you deal with it yourself. *plspec* allows you to do so.
 #### defspec_connective/4
 
 If you want to define some kind of logical connective between multiple specs, this is the predicate for you. It works exactly as `defspec_pred_recursive/4`. It is a separate predicate because `ValidPred` will do different things here, i.e. it will not consume any part of the data.
+
+### modules
+
+It is possible to store specs in a separate file. The idea is, every `spec_X(Predicate/Arity, [Specs])` gets expanded to `spec_X(Module:Predicate/Arity, [Specs])`.
+Thus, your annotation without explicitly stating a module is used for a predicate in the same module.
+
+If you want to add a spec to a predicate in another module, just add the module name. An example is `spec_pre(MyOtherFancyModule:foo_predicate/1, [...])`.
 
 
 ### register custom error handler

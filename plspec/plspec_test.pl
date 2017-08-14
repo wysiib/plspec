@@ -1,7 +1,9 @@
+:- module(plspec_test, []).
 :- use_module(plspec).
 :- use_module(library(plunit)).
 :- enable_all_spec_checks.
 :- use_module(plspec_checker).
+:- use_module('plspec_test.plspec').
 
 :- plspec:spec_pre(my_member/2,[any,[any]]).
 :- plspec:spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
@@ -302,3 +304,14 @@ test(postcondition_violated, [throws(_)]) :-
 :- end_tests(violated_postcondition).
 
 
+this_pred_has_an_extern_spec(_).
+
+:- begin_tests(externally_stored_spec).
+
+test(ints_are_okay) :-
+    this_pred_has_an_extern_spec(1).
+
+test(atoms_are_not, [throws(_)]) :-
+    this_pred_has_an_extern_spec(a).
+
+:- end_tests(externally_stored_spec).

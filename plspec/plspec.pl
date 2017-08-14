@@ -24,12 +24,12 @@ le_spec_invariant(Pred, Spec) :-
 
 spec_pre(Pred,PreSpec) :-
     (ground(PreSpec) -> true ; format('plspec: a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
-    Pred = _/Arity,
+    (Pred = _:_/Arity),
     (length(PreSpec, Arity) -> true ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
     assert(le_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
     (ground(InvariantSpec) -> true ; format('plspec: an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
-    Pred = _/Arity,
+    Pred = _:_/Arity,
     (length(InvariantSpec, Arity) -> true ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
      -> assert(le_spec_invariant(Pred, Names, Specs))
@@ -37,7 +37,7 @@ spec_invariant(Pred, InvariantSpec) :-
 spec_post(Pred,PreSpec,PostSpec) :-
     (ground(PreSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
     (ground(PostSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
-    Pred = _/Arity,
+    Pred = _:_/Arity,
     (length(PreSpec, Arity) -> true ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
     (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
@@ -128,6 +128,33 @@ spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 :- dynamic error_handler/1.
 error_handler(plspec_default_error_handler).
+
+plspec_default_error_handler(X) :-
+    pretty_print_error(X),
+    throw(plspec_error).
+
+pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
+    format('~n! plspec: a postcondition was violated!~n', []),
+    format('! plspec: the matched precondition was "~w"~n', [Pre]),
+    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
+    format('! plspec: the offending value was: ~w~n', [Val]).
+pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
+    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
+    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
+    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
+pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
+    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
+    format('! plspec: the spec was: ~w~n', [T]),
+    format('! plspec: however, the value was bound to: ~w~n', [V]).
+pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
+    %% TODO: not all failures include a location
+    format('~n! plspec: spec "~w" was not found~n', [Spec]).
+pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
+    format('~n! plspec: a spec for ~w was not found~n', [Location]),
+    format('! plspec: spec "~w" was not found~n', [Spec]).
+pretty_print_error(X) :-
+    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
+    format('! plspec: ~w.~n', [X]).
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
     format('~n! plspec: a postcondition was violated!~n', []),
@@ -240,9 +267,6 @@ spec_and(SpecList, Var, SpecList, VarRepeated) :-
     maplist(=(Var), VarRepeated).
 
 :- begin_tests(spec_and).
-
-test(empty_and, [throws(_)]) :-
-    valid(and([], 1)).
 
 test(instantiated_var) :-
     spec_and([int, atomic], X, List, VarRepeated), !,
