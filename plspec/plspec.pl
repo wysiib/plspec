@@ -350,7 +350,7 @@ setup_check_aux(Spec, Location, Val, Res) :-
                     ;  reason(Spec, Location, Val, Res))).
 setup_check_aux(Spec, Location, _, fail(spec_not_found(spec(Spec), location(Location)))).
 
-:- begin_tests(invariants).
+:- begin_tests(invariants, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
 
 test(conform) :-
     setup_uber_check(here, int, _).
