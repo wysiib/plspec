@@ -2,6 +2,5 @@
 
 :- use_module(plspec).
 :- enable_all_spec_checks.
-:- use_module(plspec_checker).
 
 :- spec_pre(plspec_test:this_pred_has_an_extern_spec/1, [int]).

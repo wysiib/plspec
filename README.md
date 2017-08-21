@@ -6,7 +6,6 @@ Inspired by [clojure.spec](https://clojure.org/about/spec), *plspec* aims to pro
 
 First, use `plspec`.
 Then, decide what you want to check.
-Finally, use `plspec_checker` if you want runtime checks.
 
 ### Setup 
 ```
@@ -19,9 +18,6 @@ Finally, use `plspec_checker` if you want runtime checks.
 :- enable_spec_check([foo/2, bar/3]). % flag all predicates in the list for runtime checks
 % or
 :- enable_all_spec_checks. % flag all spec'd predicates for runtime checks
-
-% 3. (optionally)
-:- use_module(plspec_checker). % turns on runtime checks for flagged predicates (via term expansion)
 ```
 
 

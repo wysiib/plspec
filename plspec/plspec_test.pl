@@ -2,7 +2,6 @@
 :- use_module(plspec).
 :- use_module(library(plunit)).
 :- enable_all_spec_checks.
-:- use_module(plspec_checker).
 :- use_module('plspec_test.plspec').
 
 :- plspec:spec_pre(my_member/2,[any,[any]]).
