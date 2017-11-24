@@ -15,6 +15,17 @@
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
+:- use_module(probsrc(tools_printing),[start_terminal_colour/2, reset_terminal_colour/1]).
+format_error_start(FormatStr,Args) :-
+   start_terminal_colour(red,user_error),
+   start_terminal_colour(bold,user_error),
+   format(user_error,'~n!plspec: ',[]), format(user_error,FormatStr,Args),
+   reset_terminal_colour(user_error).
+format_error(FormatStr,Args) :-
+   start_terminal_colour(red,user_error),
+   format(user_error,'!plspec: ',[]), format(user_error,FormatStr,Args),
+   reset_terminal_colour(user_error).
+
 %% set up facts
 
 named_spec(Name:Spec, Name, Spec).
@@ -23,23 +34,23 @@ le_spec_invariant(Pred, Spec) :-
     le_spec_invariant(Pred, _, Spec).
 
 spec_pre(Pred,PreSpec) :-
-    (ground(PreSpec) -> true ; format('plspec: a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+    (ground(PreSpec) -> true ; format_error('a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
     (Pred = _:_/Arity),
-    (length(PreSpec, Arity) -> true ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
+    (length(PreSpec, Arity) -> true ; format_error('a pre spec of ~w does not match in length~n', [Pred])),
     assert(le_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
-    (ground(InvariantSpec) -> true ; format('plspec: an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
+    (ground(InvariantSpec) -> true ; format_error('an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
     Pred = _:_/Arity,
-    (length(InvariantSpec, Arity) -> true ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
+    (length(InvariantSpec, Arity) -> true ; format_error('invariant spec of ~w does not match in length~n', [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
      -> assert(le_spec_invariant(Pred, Names, Specs))
       ; assert(le_spec_invariant(Pred, InvariantSpec))).
 spec_post(Pred,PreSpec,PostSpec) :-
-    (ground(PreSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
-    (ground(PostSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
+    (ground(PreSpec) -> true ; format_error('an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+    (ground(PostSpec) -> true ; format_error('an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
     Pred = _:_/Arity,
-    (length(PreSpec, Arity) -> true ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
-    (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
+    (length(PreSpec, Arity) -> true ; format_error('a post spec (precondition) of ~w does not match in length~n', [Pred])),
+    (length(PostSpec, Arity) -> true ; format_error('a post spec (postcondition) of ~w does not match in length~n', [Pred])),
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
 
 spec_exists(X) :- spec_indirection(X, _).
@@ -65,28 +76,28 @@ defspec(SpecId, OtherSpec) :-
       % we do not want to unify X = Y but also notice these are not the same specs.
       -> (variant(spec(SpecId, Existing), spec(SpecId, indirection(OtherSpec)))
           -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
+           ; format_error('spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_indirection(SpecId, OtherSpec))).
 :- meta_predicate defspec_pred(+, 1).
 defspec_pred(SpecId, Predicate) :-
     (spec_exists(SpecId, Existing)
       -> (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
           -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
+           ; format_error('spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_predicate(SpecId, Predicate))).
 :- meta_predicate defspec_pred_recursive(+, 3,3,4).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
       -> (variant(spec(SpecId, Existing), spec(SpecId, predicate_recursive(Predicate, MergePred, MergePredInvariant)))
           -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
+           ; format_error('spec ~w already exists, will not be redefined~n', [SpecId]))
        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
 :- meta_predicate defspec_connective(+, 3,3,4).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
       -> (variant(spec(SpecId, Existing), spec(SpecId, connective(Predicate, MergePred, MergePredInvariant)))
           -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId]))
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+           ; format_error('spec ~w already exists, will not be redefined~n', [SpecId])
        ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
 
 
@@ -128,73 +139,73 @@ spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
-    format('~n! plspec: a postcondition was violated!~n', []),
-    format('! plspec: the matched precondition was "~w"~n', [Pre]),
-    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
-    format('! plspec: the offending value was: ~w~n', [Val]).
+    format_error_start('a postcondition was violated!~n', []),
+    format_error('the matched precondition was "~w"~n', [Pre]),
+    format_error('however, the postcondition "~w" does not hold~n', [Post]),
+    format_error('the offending value was: ~w~n', [Val]).
 pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
-    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
-    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
+    format_error_start('no precondition was matched in ~w~n', [Functor]),
+    format_error('specified preconditions were: ~w~n', [PreSpecs]),
+    format_error('however, none of these is matched by: ~w~n', [Vals]).
 pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
-    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
-    format('! plspec: the spec was: ~w~n', [T]),
-    format('! plspec: however, the value was bound to: ~w~n', [V]).
+    format_error_start('an invariant was violated in ~w~n', [Location]),
+    format_error('the spec was: ~w~n', [T]),
+    format_error('however, the value was bound to: ~w~n', [V]).
 pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
     %% TODO: not all failures include a location
-    format('~n! plspec: spec "~w" was not found~n', [Spec]).
+    format_error_start('spec "~w" was not found~n', [Spec]).
 pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
-    format('~n! plspec: a spec for ~w was not found~n', [Location]),
-    format('! plspec: spec "~w" was not found~n', [Spec]).
+    format_error_start('a spec for ~w was not found~n', [Location]),
+    format_error('spec "~w" was not found~n', [Spec]).
 pretty_print_error(X) :-
-    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
-    format('! plspec: ~w.~n', [X]).
+    format_error_start('plspec raised an error that is unhandled.~n', []),
+    format_error('~w.~n', [X]).
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
-    format('~n! plspec: a postcondition was violated!~n', []),
-    format('! plspec: the matched precondition was "~w"~n', [Pre]),
-    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
-    format('! plspec: the offending value was: ~w~n', [Val]).
+    format_error_start('a postcondition was violated!~n', []),
+    format_error('the matched precondition was "~w"~n', [Pre]),
+    format_error('however, the postcondition "~w" does not hold~n', [Post]),
+    format_error('the offending value was: ~w~n', [Val]).
 pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
-    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
-    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
+    format_error_start('no precondition was matched in ~w~n', [Functor]),
+    format_error('specified preconditions were: ~w~n', [PreSpecs]),
+    format_error('however, none of these is matched by: ~w~n', [Vals]).
 pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
-    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
-    format('! plspec: the spec was: ~w~n', [T]),
-    format('! plspec: however, the value was bound to: ~w~n', [V]).
+    format_error_start('an invariant was violated in ~w~n', [Location]),
+    format_error('the spec was: ~w~n', [T]),
+    format_error('however, the value was bound to: ~w~n', [V]).
 pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
     %% TODO: not all failures include a location
-    format('~n! plspec: spec "~w" was not found~n', [Spec]).
+    format_error_start('spec "~w" was not found~n', [Spec]).
 pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
-    format('~n! plspec: a spec for ~w was not found~n', [Location]),
-    format('! plspec: spec "~w" was not found~n', [Spec]).
+    format_error_start('a spec for ~w was not found~n', [Location]),
+    format_error('spec "~w" was not found~n', [Spec]).
 pretty_print_error(X) :-
-    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
-    format('! plspec: ~w.~n', [X]).
+    format_error_start('plspec raised an error that is unhandled.~n', []),
+    format_error('~w.~n', [X]).
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
-    format('~n! plspec: a postcondition was violated!~n', []),
-    format('! plspec: the matched precondition was "~w"~n', [Pre]),
-    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
-    format('! plspec: the offending value was: ~w~n', [Val]).
+    format_error_start('a postcondition was violated!~n', []),
+    format_error('the matched precondition was "~w"~n', [Pre]),
+    format_error('however, the postcondition "~w" does not hold~n', [Post]),
+    format_error('the offending value was: ~w~n', [Val]).
 pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
-    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
-    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
+    format_error_start('no precondition was matched in ~w~n', [Functor]),
+    format_error('specified preconditions were: ~w~n', [PreSpecs]),
+    format_error('however, none of these is matched by: ~w~n', [Vals]).
 pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
-    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
-    format('! plspec: the spec was: ~w~n', [T]),
-    format('! plspec: however, the value was bound to: ~w~n', [V]).
+    format_error_start('an invariant was violated in ~w~n', [Location]),
+    format_error('the spec was: ~w~n', [T]),
+    format_error('however, the value was bound to: ~w~n', [V]).
 pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
     %% TODO: not all failures include a location
-    format('~n! plspec: spec "~w" was not found~n', [Spec]).
+    format_error_start('spec "~w" was not found~n', [Spec]).
 pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
-    format('~n! plspec: a spec for ~w was not found~n', [Location]),
-    format('! plspec: spec "~w" was not found~n', [Spec]).
+    format_error_start('a spec for ~w was not found~n', [Location]),
+    format_error('spec "~w" was not found~n', [Spec]).
 pretty_print_error(X) :-
-    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
-    format('! plspec: ~w.~n', [X]).
+    format_error_start('plspec raised an error that is unhandled.~n', []),
+    format_error('~w.~n', [X]).
 
 :- dynamic error_handler/1.
 error_handler(plspec_default_error_handler).
@@ -439,7 +450,7 @@ valid(Spec, Val) :-
 evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
     nonvar(Spec),
     \+ spec_exists(Spec), !,
-    format('plspec: spec ~w not found~n', [Spec]).
+    format_error('spec ~w not found~n', [Spec]).
 evaluate_spec_match(Spec, Val, Res) :-
     %spec_exists(Spec),
     evaluate_spec_match_aux(Spec, Val, Res).
@@ -450,14 +461,14 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     (call(Predicate, Val)
      -> Res = true
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format_error('implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format_error('implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
@@ -465,7 +476,7 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     (call(Predicate, Val, NewSpecs, NewVals)
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format_error('implementation of spec ~w binds variables but should not~n', [Predicate])).
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
@@ -577,7 +588,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
                (PreSpecs = [] -> true ; (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,Args) ; true), 
+               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,Args) ; true),
                % unify with pattern matching of head
                NewArgs = Args,
                % gather all matching postconditions
