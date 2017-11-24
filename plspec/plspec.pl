@@ -5,6 +5,7 @@
                   enable_spec_check/1, enable_all_spec_checks/0,
                   spec_set_debug_mode/0,
                   set_error_handler/1,
+                  pretty_print_error/1,
                   le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
                ]).
 
