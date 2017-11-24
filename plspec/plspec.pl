@@ -15,7 +15,7 @@
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
-:- use_module(probsrc(tools_printing),[start_terminal_colour/2, reset_terminal_colour/1]).
+% predicates for printing error messages:
 format_error_start(FormatStr,Args) :-
    start_terminal_colour(red,user_error),
    start_terminal_colour(bold,user_error),
@@ -25,6 +25,11 @@ format_error(FormatStr,Args) :-
    start_terminal_colour(red,user_error),
    format(user_error,'!plspec: ',[]), format(user_error,FormatStr,Args),
    reset_terminal_colour(user_error).
+
+% selected clauses from :- use_module(probsrc(tools_printing),[start_terminal_colour/2, reset_terminal_colour/1]).
+start_terminal_colour(red,Stream) :- !, write(Stream,'\e[31m').
+start_terminal_colour(bold,Stream) :- !, write(Stream,'\e[1m').
+reset_terminal_colour(Stream) :- write(Stream,'\e[0m').
 
 %% set up facts
 
@@ -167,7 +172,7 @@ pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(P
     format_error('however, the postcondition "~w" does not hold~n', [Post]),
     format_error('the offending value was: ~w~n', [Val]).
 pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format_error_start('no precondition was matched in ~w~n', [Functor]),
+    format_error_start('no precondition was matched for ~w~n', [Functor]),
     format_error('specified preconditions were: ~w~n', [PreSpecs]),
     format_error('however, none of these is matched by: ~w~n', [Vals]).
 pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
