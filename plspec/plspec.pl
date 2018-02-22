@@ -577,7 +577,7 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
                (PreSpecs = [] -> true ; (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,Args) ; true), 
+               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,NewArgs) ; true), 
                % unify with pattern matching of head
                NewArgs = Args,
                % gather all matching postconditions
