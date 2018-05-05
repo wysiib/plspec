@@ -431,11 +431,13 @@ check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
       ; error_handler(X),
         call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
 
-
+% Validates a value against a Spec
 valid(Spec, Val) :-
-    evaluate_spec_match(Spec, Val, X),
-    X == true.
+    evaluate_spec_match(Spec, Val,Success),
+    Success == true.
 
+% evaluate_spec_match
+%% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
 evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
     nonvar(Spec),
     \+ spec_exists(Spec), !,
@@ -443,6 +445,11 @@ evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
 evaluate_spec_match(Spec, Val, Res) :-
     %spec_exists(Spec),
     evaluate_spec_match_aux(Spec, Val, Res).
+
+% evaluate_spec_match_aux
+% matches against different types of specs
+
+%a spec predicate
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
@@ -451,6 +458,8 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
      -> Res = true
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+
+% a recursive spec
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
@@ -458,6 +467,8 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+
+% a connective spec
 evaluate_spec_match_aux(Spec, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
@@ -466,6 +477,8 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
      -> call(MergePred, NewSpecs, NewVals, Res)
       ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+
+%TODO:???
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
