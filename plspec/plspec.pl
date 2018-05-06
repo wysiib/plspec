@@ -5,6 +5,9 @@
                   enable_spec_check/1, enable_all_spec_checks/0,
                   spec_set_debug_mode/0,
                   set_error_handler/1,
+                  spec_and/4,
+                  list/4,
+                  valid/2,
                   le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
                ]).
 
@@ -15,7 +18,6 @@
 :- use_module(library(terms), [variant/2]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
-%:- multifile spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
 %% set up facts
 

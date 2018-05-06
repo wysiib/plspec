@@ -1,4 +1,5 @@
-:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, spec_exists/1,
+:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, 
+                      spec_exists/1, spec_exists/2,
                       true/1, atom/2,
                       valid/2,
                       evaluate_spec_match/3, evaluate_spec_match_aux/3,
@@ -35,10 +36,14 @@ spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 %When does a predicate exists:
+spec_exists(X) :- spec_indirection(X, _).
 spec_exists(X) :- spec_predicate(X, _).
 spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
-spec_exists(X) :- spec_indirection(X, _).
 spec_exists(X) :- spec_connective(X, _, _, _).
+spec_exists(X, indirection(Y)) :- spec_indirection(X, Y).
+spec_exists(X, predicate(Y)) :- spec_predicate(X, Y).
+spec_exists(X, predicate_recursive(A,B,C)) :- spec_predicate_recursive(X, A, B, C).
+spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C).
 
 :- public true/1.
 true(_).
