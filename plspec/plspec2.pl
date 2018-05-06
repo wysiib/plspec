@@ -15,11 +15,21 @@ spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
 
+spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
 spec_predicate_recursive(list(X), list(X), and, and_invariant).
+spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
+
+spec_indirection(int, integer).
+spec_indirection([X], list(X)).
+
+spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
+spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 %When does a predicate exists:
 spec_exists(X) :- spec_predicate(X, _).
 spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
+spec_exists(X) :- spec_indirection(X, _).
+spec_exists(X) :- spec_connective(X, _, _, _).
 
 %TODO: why is this needed
 :- public true/1.
@@ -62,6 +72,22 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
 
+% a connective spec
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    nonvar(Spec),
+    spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
+    copy_term(Val, Vali),
+    (call(Predicate, Val, NewSpecs, NewVals)
+     -> call(MergePred, NewSpecs, NewVals, Res)
+     ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
+    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+
+%spec was an alias for another spec
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    spec_indirection(Spec, NewSpec),
+    evaluate_spec_match(NewSpec, Val, Res).
+
+
 :- public and/3.
 and([], [], true).
 and([S|Specs], [V|Vals], Res) :-
@@ -83,3 +109,42 @@ list1(L, Spec, [Spec|ST], [H|VT]) :-
 list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
+
+
+:- public compound/4.
+compound(Spec, Val, NewSpecs, NewVars) :-
+    compound(Val),
+    Val =.. [Functor|NewVars],
+    Functor \= '[|]',
+    length(NewVars, Len),
+    length(NewSpecs, Len),
+    Spec =.. [Functor|NewSpecs].
+
+:- public tuple/4.
+tuple(SpecList, VarList, SpecList, VarList) :-
+    is_list(VarList).
+
+spec_and(SpecList, Var, SpecList, VarRepeated) :-
+    SpecList \= [],
+    %% this is actually repeat
+    length(SpecList,L),
+    length(VarRepeated,L),
+    maplist(=(Var), VarRepeated).
+
+:- public and/3.
+and([], [], true).
+and([S|Specs], [V|Vals], Res) :-
+    evaluate_spec_match(S, V, X),
+    (X == true
+     -> and(Specs, Vals, Res)
+     ; Res = fail(spec_not_matched(spec(S), value(V)))).
+
+:- public or/3.
+or(Specs, Vals, true) :-
+    or2(Specs, Vals), !.
+or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
+
+or2([HSpec|TSpec], [HVal|TVal]) :-
+    (evaluate_spec_match(HSpec, HVal, true)
+     -> true
+     ;  or2(TSpec, TVal)).
