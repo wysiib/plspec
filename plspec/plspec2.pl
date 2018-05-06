@@ -6,7 +6,7 @@
 % Definition of spec predicates
 spec_predicate(atomic, atomic).
 spec_predicate(atom, atom).
-spec_predicate(atom(X), atom(X)).
+spec_predicate(atom(X), atom(X)). %TODO: why is this needed?
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(float, float).
@@ -31,7 +31,6 @@ spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
 spec_exists(X) :- spec_indirection(X, _).
 spec_exists(X) :- spec_connective(X, _, _, _).
 
-%TODO: why is this needed
 :- public true/1.
 true(_).
 :- public atom/2.
@@ -63,6 +62,7 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
      -> Res = true
      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
+
 % a recursive spec
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
@@ -87,15 +87,7 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
 
-
-:- public and/3.
-and([], [], true).
-and([S|Specs], [V|Vals], Res) :-
-    evaluate_spec_match(S, V, X),
-    (X == true
-     -> and(Specs, Vals, Res)
-     ; Res = fail(spec_not_matched(spec(S), value(V)))).
-
+% built-in recursive specs
 list(Spec, Val, NewSpecs, NewVals) :-
     nonvar(Val), list1(Val, Spec, NewSpecs, NewVals).
 %% list1 only ensures that the value is a list.
