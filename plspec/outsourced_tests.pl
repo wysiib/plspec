@@ -1,3 +1,6 @@
+:- use_module(plspec).
+:- use_module(library(lists), [maplist/2, maplist/3, maplist/4, is_list/1]).
+
 :- begin_tests(lists).
 
 test(empty_list) :-
