@@ -313,14 +313,16 @@ and([S|Specs], [V|Vals], Res) :-
     (X == true
      -> and(Specs, Vals, Res)
       ; Res = fail(spec_not_matched(spec(S), value(V)))).
-or2([HSpec|TSpec], [HVal|TVal]) :-
-    (evaluate_spec_match(HSpec, HVal, true)
-      -> true
-      ;  or2(TSpec, TVal)).
+
 :- public or/3.
 or(Specs, Vals, true) :-
     or2(Specs, Vals), !.
 or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
+
+or2([HSpec|TSpec], [HVal|TVal]) :-
+    (evaluate_spec_match(HSpec, HVal, true)
+      -> true
+      ;  or2(TSpec, TVal)).
 
 
 
