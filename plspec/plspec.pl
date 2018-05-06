@@ -7,7 +7,7 @@
                   set_error_handler/1,
                   le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
                ]).
-
+:- use_module(prettyprinter).
 :- use_module(library(plunit)).
 :- use_module(library(lists), [maplist/2, maplist/3, maplist/4, is_list/1]).
 :- use_module(library(terms), [variant/2]).
@@ -127,74 +127,7 @@ spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 
-pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
-    format('~n! plspec: a postcondition was violated!~n', []),
-    format('! plspec: the matched precondition was "~w"~n', [Pre]),
-    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
-    format('! plspec: the offending value was: ~w~n', [Val]).
-pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
-    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
-    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
-pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
-    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
-    format('! plspec: the spec was: ~w~n', [T]),
-    format('! plspec: however, the value was bound to: ~w~n', [V]).
-pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
-    %% TODO: not all failures include a location
-    format('~n! plspec: spec "~w" was not found~n', [Spec]).
-pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
-    format('~n! plspec: a spec for ~w was not found~n', [Location]),
-    format('! plspec: spec "~w" was not found~n', [Spec]).
-pretty_print_error(X) :-
-    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
-    format('! plspec: ~w.~n', [X]).
 
-pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
-    format('~n! plspec: a postcondition was violated!~n', []),
-    format('! plspec: the matched precondition was "~w"~n', [Pre]),
-    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
-    format('! plspec: the offending value was: ~w~n', [Val]).
-pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
-    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
-    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
-pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
-    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
-    format('! plspec: the spec was: ~w~n', [T]),
-    format('! plspec: however, the value was bound to: ~w~n', [V]).
-pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
-    %% TODO: not all failures include a location
-    format('~n! plspec: spec "~w" was not found~n', [Spec]).
-pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
-    format('~n! plspec: a spec for ~w was not found~n', [Location]),
-    format('! plspec: spec "~w" was not found~n', [Spec]).
-pretty_print_error(X) :-
-    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
-    format('! plspec: ~w.~n', [X]).
-
-pretty_print_error(fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Val)))) :-
-    format('~n! plspec: a postcondition was violated!~n', []),
-    format('! plspec: the matched precondition was "~w"~n', [Pre]),
-    format('! plspec: however, the postcondition "~w" does not hold~n', [Post]),
-    format('! plspec: the offending value was: ~w~n', [Val]).
-pretty_print_error(fail(prespec_violated(specs(PreSpecs), values(Vals), location(Functor)))) :-
-    format('~n! plspec: no precondition was matched in ~w~n', [Functor]),
-    format('! plspec: specified preconditions were: ~w~n', [PreSpecs]),
-    format('! plspec: however, none of these is matched by: ~w~n', [Vals]).
-pretty_print_error(fail(spec_violated(spec(T), value(V), location(Location)))) :-
-    format('~n! plspec: an invariant was violated in ~w~n', [Location]),
-    format('! plspec: the spec was: ~w~n', [T]),
-    format('! plspec: however, the value was bound to: ~w~n', [V]).
-pretty_print_error(fail(spec_not_found(spec(Spec)))) :-
-    %% TODO: not all failures include a location
-    format('~n! plspec: spec "~w" was not found~n', [Spec]).
-pretty_print_error(fail(spec_not_found(spec(Spec), location(Location)))) :-
-    format('~n! plspec: a spec for ~w was not found~n', [Location]),
-    format('! plspec: spec "~w" was not found~n', [Spec]).
-pretty_print_error(X) :-
-    format('~n! plspec: plspec raised an error that is unhandled.~n', []),
-    format('! plspec: ~w.~n', [X]).
 
 :- dynamic error_handler/1.
 error_handler(plspec_default_error_handler).
@@ -234,26 +167,6 @@ list1(L, Spec, [Spec|ST], [H|VT]) :-
 list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
-
-:- begin_tests(lists).
-
-test(empty_list) :-
-    list(Spec, [], Specs, Vals), !,
-    var(Spec), Specs == [], Vals == [].
-
-test(list1) :-
-    list(int, [1,2,3], Specs, Vals), !,
-    Specs == [int, int, int], Vals == [1, 2, 3].
-
-test(list2) :-
-    list(list(int), [1,2,3], Specs, Vals), !,
-    Specs == [list(int), list(int), list(int)], Vals == [1, 2, 3].
-
-test(list3) :-
-    list(int, [X,Y,Z], Specs, Vals), !,
-    Specs == [int, int, int], Vals == [X, Y, Z].
-
-:- end_tests(lists).
 
 
 spec_and(SpecList, Var, SpecList, VarRepeated) :-
@@ -352,64 +265,6 @@ setup_check_aux(Spec, Location, Val, Res) :-
                     ;  reason(Spec, Location, Val, Res))).
 setup_check_aux(Spec, Location, _, fail(spec_not_found(spec(Spec), location(Location)))).
 
-:- begin_tests(invariants, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
-
-test(conform) :-
-    setup_uber_check(here, int, _).
-
-test(conform2) :-
-    setup_uber_check(here, int, X), !, X = 2.
-
-test(nonconform, [throws(_)]) :-
-    setup_uber_check(here, int, X), !, X = a.
-
-test(list_empty) :-
-    setup_uber_check(here, list(int), _).
-
-test(list_ground) :-
-    setup_uber_check(here, list(int), [1,2,3]).
-
-test(list_ground_later) :-
-    setup_uber_check(here, list(int), X), !, X = [1,2,3].
-
-test(partial_list_instantiation) :-
-    setup_uber_check(here, list(int), X), !, X = [1,_,3].
-
-test(partial_list_instantiation2) :-
-    setup_uber_check(here, list(int), X), !, X = [_,_,3].
-
-test(partial_list_instantiation3) :-
-    setup_uber_check(here, list(int), X), !, X = [_|_].
-
-test(partial_list_instantiation4, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [a|_].
-
-test(partial_list_instantiation5, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [_, a|_].
-
-test(partial_list_instantiation6, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [_, _|a].
-
-test(partial_list_instantiation7, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,a]].
-
-test(partial_list_instantiation8) :-
-    setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,6]].
-
-test(one_of1) :-
-    setup_uber_check(here, one_of([int, atomic]), _).
-
-test(one_of2) :-
-    setup_uber_check(here, one_of([int, atomic]), X), !, X = 1.
-
-test(one_of3) :-
-    setup_uber_check(here, one_of([int, atomic]), X), !, X = a.
-
-test(one_of4, throws(_)) :-
-    setup_uber_check(here, one_of([int, atomic]), X), !, X = [1].
-
-:- end_tests(invariants).
-
 
 
 reason(T, Location, V, Reason) :-
@@ -484,77 +339,6 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
 evaluate_spec_match_aux(Spec, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Val, Res).
-
-
-
-
-:- begin_tests(valid).
-
-test(any) :-
-    valid(any, _),
-    valid(any, 1),
-    valid(any, []),
-    valid(any, foo(_, _)),
-    valid(any, foo).
-
-test(ground) :-
-    \+ valid(ground, _),
-    valid(ground, 1),
-    valid(ground, []),
-    \+ valid(ground, foo(_, _)),
-    valid(ground, foo(1, 2)),
-    valid(ground, foo).
-
-test(list) :-
-    \+ valid([any], _),
-    valid([any], []),
-    valid([any], [a]),
-    valid([any], [1]),
-    valid([any], [_]),
-    valid([any], [[]]),
-    valid([any], [any]).
-
-test(list2) :-
-    valid([int], [1,2]).
-
-test(list_of_list) :-
-    \+ valid([[any]], _),
-    \+ valid([[any]], [a]),
-    \+ valid([[any]], [_]),
-    valid([[any]], []),
-    valid([[any]], [[1]]),
-    valid([[any]], [[a]]),
-    valid([[any]], [[]]).
-
-test(compounds) :-
-    valid(compound(foo(any)), foo(_)),
-    valid(compound(foo(any)), foo(a)),
-    \+ valid(compound(foo(any)), bar(a)),
-    \+ valid(compound(foo(any, any)), foo(a)),
-    valid(compound(foo(any, any)), foo(a, a)),
-    \+ valid(compound(foo(any, var)), foo(a, a)).
-
-test(tuples) :-
-    valid(tuple([any]), [_]),
-    \+ valid(tuple([any]), []),
-    \+ valid(tuple([any]), [_, _]),
-    valid(tuple([any, any]), [_, _]).
-
-test(indirection) :-
-    valid(int, 3).
-
-test(one_of) :-
-    valid(one_of([int, atomic]), 3),
-    valid(one_of([int, atomic]), abc),
-    \+ valid(one_of([int, atomic]), [1]),
-    \+ valid(one_of([int, atomic]), _).
-
-test(and) :-
-    valid(and([int, ground]), 3),
-    \+ valid(and([int, var]), 3).
-
-:- end_tests(valid).
-
 
 
 %% term expansion
