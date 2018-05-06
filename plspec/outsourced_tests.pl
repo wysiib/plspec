@@ -144,3 +144,11 @@ test(and) :-
 
 :- end_tests(valid).
 
+:- begin_tests(spec_and).
+
+test(instantiated_var) :-
+    spec_and([int, atomic], X, List, VarRepeated), !,
+    List == [int, atomic], VarRepeated == [X, X].
+
+:- end_tests(spec_and).
+

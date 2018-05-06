@@ -176,13 +176,7 @@ spec_and(SpecList, Var, SpecList, VarRepeated) :-
     length(VarRepeated,L),
     maplist(=(Var), VarRepeated).
 
-:- begin_tests(spec_and).
 
-test(instantiated_var) :-
-    spec_and([int, atomic], X, List, VarRepeated), !,
-    List == [int, atomic], VarRepeated == [X, X].
-
-:- end_tests(spec_and).
 
 :- public tuple/4.
 tuple(SpecList, VarList, SpecList, VarList) :-
@@ -196,7 +190,6 @@ both_eventually_true(V1, V2, Res) :-
          ; nonvar(V1) -> Res = V1 %% since it is not true
          ; V2 == true -> freeze(V1, Res = V1)
          ; nonvar(V2) -> Res = V2)).
-
 
 invariand([], [], _, true).
 invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
