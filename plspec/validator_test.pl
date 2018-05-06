@@ -1,4 +1,4 @@
-:- module(plspec2_test, []).
+:- module(validator_lspec2_test, []).
 
 :- use_module(plspec2).
 :- use_module(library(plunit)).

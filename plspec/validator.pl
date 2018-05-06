@@ -1,4 +1,4 @@
-:- module(plspec2, [spec_predicate/2, spec_exists/1, validate/2]).
+:- module(validator, [spec_predicate/2, spec_exists/1, validate/2]).
 
 :- use_module(library(terms), [variant/2]).
 
