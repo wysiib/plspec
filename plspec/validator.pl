@@ -1,6 +1,15 @@
-:- module(validator, [spec_predicate/2, spec_exists/1, validate/2]).
+:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, spec_exists/1,
+                      true/1, atom/2,
+                      valid/2,
+                      evaluate_spec_match/3, evaluate_spec_match_aux/3,
+                      list/4, compound/4, tuple/4,
+                      spec_and/4, and/3, or/3
+                     ]).
 
 :- use_module(library(terms), [variant/2]).
+:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
+:- multifile spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
+
 
 
 % Definition of spec predicates
@@ -36,7 +45,7 @@ true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
 
-validate(Spec, Val) :-
+valid(Spec, Val) :-
     evaluate_spec_match(Spec, Val, Success),
     Success == true.
 

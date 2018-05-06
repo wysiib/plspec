@@ -1,4 +1,4 @@
-:- module(plspec,[spec_pre/2,spec_post/3,spec_invariant/2,valid/2,
+:- module(plspec,[spec_pre/2,spec_post/3,spec_invariant/2,
                   defspec/2, defspec_pred/2, defspec_pred_recursive/4, defspec_connective/4,
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   plspec_some/2, error_not_matching_any_pre/3,
@@ -7,13 +7,15 @@
                   set_error_handler/1,
                   le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
                ]).
+
+:- use_module(validator).
 :- use_module(prettyprinter).
 :- use_module(library(plunit)).
-:- use_module(library(lists), [maplist/2, maplist/3, maplist/4, is_list/1]).
+
 :- use_module(library(terms), [variant/2]).
 
 :- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
-:- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
+%:- multifile spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
 %% set up facts
 
@@ -41,15 +43,6 @@ spec_post(Pred,PreSpec,PostSpec) :-
     (length(PreSpec, Arity) -> true ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
     (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
-
-spec_exists(X) :- spec_indirection(X, _).
-spec_exists(X) :- spec_predicate(X, _).
-spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
-spec_exists(X) :- spec_connective(X, _, _, _).
-spec_exists(X, indirection(Y)) :- spec_indirection(X, Y).
-spec_exists(X, predicate(Y)) :- spec_predicate(X, Y).
-spec_exists(X, predicate_recursive(A,B,C)) :- spec_predicate_recursive(X, A, B, C).
-spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C).
 
 :- dynamic spec_debug/0.
 debug_format(Format, Args) :-
@@ -99,36 +92,6 @@ enable_all_spec_checks :-
     assert(check_predicate(_)).
 
 
-
-spec_predicate(atomic, atomic).
-spec_predicate(atom, atom).
-spec_predicate(atom(X), atom(X)).
-spec_predicate(integer, integer).
-spec_predicate(number, number).
-spec_predicate(float, float).
-spec_predicate(var, var).
-spec_predicate(ground, ground).
-spec_predicate(nonvar, nonvar).
-spec_predicate(any, true).
-
-:- public true/1.
-true(_).
-:- public atom/2.
-atom(X, Y) :- atom(Y), X = Y.
-
-spec_indirection(int, integer).
-spec_indirection([X], list(X)).
-
-spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
-spec_predicate_recursive(list(X), list(X), and, and_invariant).
-spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
-
-spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
-spec_connective(one_of(X), spec_and(X), or, or_invariant).
-
-
-
-
 :- dynamic error_handler/1.
 error_handler(plspec_default_error_handler).
 
@@ -141,46 +104,6 @@ plspec_default_error_handler(X) :-
 set_error_handler(Pred) :-
     retractall(error_handler(_)),
     assert(error_handler(Pred)).
-
-
-
-%% built-in recursive specs
-:- public compound/4.
-compound(Spec, Val, NewSpecs, NewVars) :-
-    compound(Val),
-    Val =.. [Functor|NewVars],
-    Functor \= '[|]',
-    length(NewVars, Len),
-    length(NewSpecs, Len),
-    Spec =.. [Functor|NewSpecs].
-
-list(Spec, Val, NewSpecs, NewVals) :-
-    nonvar(Val), list1(Val, Spec, NewSpecs, NewVals).
-%% list1 only ensures that the value is a list.
-%% The type of its members is checked later on in a seperate step.
-%% list1 will return a spec for each member.
-%% If a tail is a variable, the bound value should be
-%% of the same type as the list itself.
-list1(L, Spec, [Spec|ST], [H|VT]) :-
-    nonvar(L), L = [H|T], !,
-    list1(T, Spec, ST, VT).
-list1(L, _, [], []) :-
-    nonvar(L), L = [], !.
-list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
-
-
-spec_and(SpecList, Var, SpecList, VarRepeated) :-
-    SpecList \= [],
-    %% this is actually repeat
-    length(SpecList,L),
-    length(VarRepeated,L),
-    maplist(=(Var), VarRepeated).
-
-
-
-:- public tuple/4.
-tuple(SpecList, VarList, SpecList, VarList) :-
-    is_list(VarList).
 
 
 %% merge recursive specs
@@ -211,24 +134,6 @@ or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
 :- public or_invariant/4.
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
     or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
-
-:- public and/3.
-and([], [], true).
-and([S|Specs], [V|Vals], Res) :-
-    evaluate_spec_match(S, V, X),
-    (X == true
-     -> and(Specs, Vals, Res)
-      ; Res = fail(spec_not_matched(spec(S), value(V)))).
-
-:- public or/3.
-or(Specs, Vals, true) :-
-    or2(Specs, Vals), !.
-or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
-
-or2([HSpec|TSpec], [HVal|TVal]) :-
-    (evaluate_spec_match(HSpec, HVal, true)
-      -> true
-      ;  or2(TSpec, TVal)).
 
 
 
@@ -280,59 +185,6 @@ check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
      -> check_posts(ArgT, PreT, PostT)
       ; error_handler(X),
         call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
-
-% Validates a value against a Spec
-valid(Spec, Val) :-
-    evaluate_spec_match(Spec, Val,Success),
-    Success == true.
-
-% evaluate_spec_match
-%% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
-evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
-    nonvar(Spec),
-    \+ spec_exists(Spec), !,
-    format('plspec: spec ~w not found~n', [Spec]).
-evaluate_spec_match(Spec, Val, Res) :-
-    %spec_exists(Spec),
-    evaluate_spec_match_aux(Spec, Val, Res).
-
-% evaluate_spec_match_aux
-% matches against different types of specs
-
-%a spec predicate
-evaluate_spec_match_aux(Spec, Val, Res) :-
-    spec_predicate(Spec, Predicate),
-    %% HACK: copy_term does weird things to co-routines
-    copy_term(Val, Vali),
-    (call(Predicate, Val)
-     -> Res = true
-      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
-
-% a recursive spec
-evaluate_spec_match_aux(Spec, Val, Res) :-
-    spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
-    copy_term(Val, Vali),
-    (call(Predicate, Val, NewSpecs, NewVals)
-     -> call(MergePred, NewSpecs, NewVals, Res)
-      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
-
-% a connective spec
-evaluate_spec_match_aux(Spec, Val, Res) :-
-    nonvar(Spec),
-    spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
-    copy_term(Val, Vali),
-    (call(Predicate, Val, NewSpecs, NewVals)
-     -> call(MergePred, NewSpecs, NewVals, Res)
-      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; format('plspec: implementation of spec ~w binds variables but should not~n', [Predicate])).
-
-%TODO:???
-evaluate_spec_match_aux(Spec, Val, Res) :-
-    spec_indirection(Spec, NewSpec),
-    evaluate_spec_match(NewSpec, Val, Res).
-
 
 %% term expansion
 :- meta_predicate plspec_some(1, +).
