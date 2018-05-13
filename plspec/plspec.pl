@@ -8,7 +8,7 @@
                   spec_and/4,
                   list/4,
                   valid/2,
-                  le_spec_pre/2, le_spec_invariant/2, le_spec_post/3, check_predicate/1 % called by term expander
+                  asserted_spec_pre/2, asserted_spec_invariant/2, asserted_spec_post/3, check_predicate/1 % called by term expander
                ]).
 
 :- use_module(validator).
@@ -17,14 +17,14 @@
 
 :- use_module(library(terms), [variant/2]).
 
-:- dynamic le_spec_pre/2, le_spec_invariant/2, le_spec_invariant/3, le_spec_post/3.
+:- dynamic asserted_spec_pre/2, asserted_spec_invariant/2, asserted_spec_invariant/3, asserted_spec_post/3.
 
 %% set up facts
 
 named_spec(Name:Spec, Name, Spec).
 
-le_spec_invariant(Pred, Spec) :-
-    le_spec_invariant(Pred, _, Spec).
+asserted_spec_invariant(Pred, Spec) :-
+    asserted_spec_invariant(Pred, _, Spec).
 
 spec_pre(Pred,PreSpec) :-
     (ground(PreSpec) 
@@ -34,7 +34,7 @@ spec_pre(Pred,PreSpec) :-
     (length(PreSpec, Arity) 
         -> true 
         ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
-    assert(le_spec_pre(Pred,PreSpec)).
+    assert(asserted_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
     (ground(InvariantSpec) 
         -> true 
@@ -44,8 +44,8 @@ spec_invariant(Pred, InvariantSpec) :-
         -> true 
         ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
-        -> assert(le_spec_invariant(Pred, Names, Specs))
-        ; assert(le_spec_invariant(Pred, InvariantSpec))).
+        -> assert(asserted_spec_invariant(Pred, Names, Specs))
+        ; assert(asserted_spec_invariant(Pred, InvariantSpec))).
 spec_post(Pred,PreSpec,PostSpec) :-
     (ground(PreSpec) 
         -> true 
@@ -60,7 +60,7 @@ spec_post(Pred,PreSpec,PostSpec) :-
     (length(PostSpec, Arity) 
         -> true 
         ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
-    assert(le_spec_post(Pred,PreSpec,PostSpec)).
+    assert(asserted_spec_post(Pred,PreSpec,PostSpec)).
 
 :- dynamic spec_debug/0.
 debug_format(Format, Args) :-
@@ -122,41 +122,6 @@ plspec_default_error_handler(X) :-
 set_error_handler(Pred) :-
     retractall(error_handler(_)),
     assert(error_handler(Pred)).
-
-
-%% merge recursive specs
-both_eventually_true(V1, V2, Res) :-
-    when((nonvar(V1); nonvar(V2)),
-         (V1 == true 
-            -> freeze(V2, Res = V2) %% look at the other co-routined variable
-            ; nonvar(V1) 
-                -> Res = V1 %% since it is not true
-                ; V2 == true 
-                    -> freeze(V1, Res = V1)
-                    ; nonvar(V2) -> Res = V2)).
-
-invariand([], [], _, true).
-invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
-    setup_check(Location, ResElement,HSpec, HVal),
-    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)), % TODO: do we need this freeze?
-    both_eventually_true(ResElement, ResTail, R).
-
-:- public and_invariant/4.
-and_invariant(Specs, Vals, Location, R) :-
-    invariand(Specs, Vals, Location, R).
-
-or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
-    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason) ; true)).
-or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
-    setup_check(Location, ResOption, H, V),
-    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
-    or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
-
-:- public or_invariant/4.
-or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
-    or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
-
-
 
 %% check coroutine magic
 setup_uber_check(Location,Spec,Val) :-
@@ -241,8 +206,14 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
     length(NewArgs, Lenny),
     NewHead =.. [Functor|NewArgs],
     NewBody = (% determine if at least one precondition is fulfilled
-               (PreSpecs = [] -> true ; (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) -> true ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
-               (InvariantSpecOrEmpty = [InvariantSpec] -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,NewArgs) ; true), 
+               (PreSpecs = [] 
+                    -> true 
+                    ; (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs) 
+                        -> true 
+                        ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
+               (InvariantSpecOrEmpty = [InvariantSpec] 
+                    -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,NewArgs) 
+                    ; true), 
                % unify with pattern matching of head
                NewArgs = Args,
                % gather all matching postconditions
@@ -253,15 +224,15 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
 should_expand(A, F, Module, Arity) :-
     functor(A,F,Arity),
     %trace,
-    (plspec:le_spec_pre(Module:F/Arity, _) ; plspec:le_spec_invariant(Module:F/Arity, _) ; plspec:le_spec_post(Module:F/Arity, _, _)), !,
+    (plspec:asserted_spec_pre(Module:F/Arity, _) ; plspec:asserted_spec_invariant(Module:F/Arity, _) ; plspec:asserted_spec_post(Module:F/Arity, _, _)), !,
     plspec:check_predicate(F/Arity).
 
 expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
     should_expand(A, F, Module, Arity), !,
-    findall(PreSpec, plspec:le_spec_pre(Module:F/Arity,PreSpec), PreSpecs),
-    findall(InvSpec, plspec:le_spec_invariant(Module:F/Arity,InvSpec),InvariantSpecOrEmpty),
-    findall(PreSpec2,plspec:le_spec_post(Module:F/Arity,PreSpec2,_),PrePostSpecs),
-    findall(PostSpec,plspec:le_spec_post(Module:F/Arity,_,PostSpec),PostSpecs),
+    findall(PreSpec, plspec:asserted_spec_pre(Module:F/Arity,PreSpec), PreSpecs),
+    findall(InvSpec, plspec:asserted_spec_invariant(Module:F/Arity,InvSpec),InvariantSpecOrEmpty),
+    findall(PreSpec2,plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_),PrePostSpecs),
+    findall(PostSpec,plspec:asserted_spec_post(Module:F/Arity,_,PostSpec),PostSpecs),
     expansion(A,B,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NA,NB).
 
 do_expand(':-'(spec_pre(Predicate/Arity, Spec)), Module, ':-'(spec_pre(Module:Predicate/Arity, Spec))).
@@ -287,3 +258,36 @@ user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
     nonmember(plspec_token, Ids),
     prolog_load_context(module, Module),
     do_expand(Term1, Module, Term2).
+    
+invariand([], [], _, true).
+invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
+    setup_check(Location, ResElement,HSpec, HVal),
+    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)), % TODO: do we need this freeze?
+    both_eventually_true(ResElement, ResTail, R).
+
+:- public and_invariant/4.
+and_invariant(Specs, Vals, Location, R) :-
+    invariand(Specs, Vals, Location, R).
+    
+
+or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
+    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason) ; true)).
+or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
+    setup_check(Location, ResOption, H, V),
+    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
+    or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
+
+:- public or_invariant/4.
+or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
+    or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
+    
+%% merge recursive specs
+both_eventually_true(V1, V2, Res) :-
+    when((nonvar(V1); nonvar(V2)),
+         (V1 == true 
+            -> freeze(V2, Res = V2) %% look at the other co-routined variable
+            ; nonvar(V1) 
+                -> Res = V1 %% since it is not true
+                ; V2 == true 
+                    -> freeze(V1, Res = V1)
+                    ; nonvar(V2) -> Res = V2)).
