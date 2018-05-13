@@ -27,23 +27,39 @@ le_spec_invariant(Pred, Spec) :-
     le_spec_invariant(Pred, _, Spec).
 
 spec_pre(Pred,PreSpec) :-
-    (ground(PreSpec) -> true ; format('plspec: a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+    (ground(PreSpec) 
+        -> true 
+        ; format('plspec: a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
     (Pred = _:_/Arity),
-    (length(PreSpec, Arity) -> true ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
+    (length(PreSpec, Arity) 
+        -> true 
+        ; format('plspec: a pre spec of ~w does not match in length~n', [Pred])),
     assert(le_spec_pre(Pred,PreSpec)).
 spec_invariant(Pred, InvariantSpec) :-
-    (ground(InvariantSpec) -> true ; format('plspec: an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
+    (ground(InvariantSpec) 
+        -> true 
+        ; format('plspec: an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
     Pred = _:_/Arity,
-    (length(InvariantSpec, Arity) -> true ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
+    (length(InvariantSpec, Arity) 
+        -> true 
+        ; format('plspec: invariant spec of ~w does not match in length~n', [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
-     -> assert(le_spec_invariant(Pred, Names, Specs))
-      ; assert(le_spec_invariant(Pred, InvariantSpec))).
+        -> assert(le_spec_invariant(Pred, Names, Specs))
+        ; assert(le_spec_invariant(Pred, InvariantSpec))).
 spec_post(Pred,PreSpec,PostSpec) :-
-    (ground(PreSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
-    (ground(PostSpec) -> true ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
+    (ground(PreSpec) 
+        -> true 
+        ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+    (ground(PostSpec) 
+        -> true 
+        ; format('plspec: an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
     Pred = _:_/Arity,
-    (length(PreSpec, Arity) -> true ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
-    (length(PostSpec, Arity) -> true ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
+    (length(PreSpec, Arity) 
+        -> true 
+        ; format('plspec: a post spec (precondition) of ~w does not match in length~n', [Pred])),
+    (length(PostSpec, Arity) 
+        -> true 
+        ; format('plspec: a post spec (postcondition) of ~w does not match in length~n', [Pred])),
     assert(le_spec_post(Pred,PreSpec,PostSpec)).
 
 :- dynamic spec_debug/0.
@@ -55,34 +71,34 @@ spec_set_debug_mode :-
 
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId, Existing)
-      %% we use variant in order to determine whether it is actually the same spec;
-      % for example, consider defspec(foo(X,Y), bar(X,Y)), defspec(foo(X,Y), bar(Y,X)).
-      % we do not want to unify X = Y but also notice these are not the same specs.
-      -> (variant(spec(SpecId, Existing), spec(SpecId, indirection(OtherSpec)))
-          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
-       ; assert(spec_indirection(SpecId, OtherSpec))).
+        %% we use variant in order to determine whether it is actually the same spec;
+        % for example, consider defspec(foo(X,Y), bar(X,Y)), defspec(foo(X,Y), bar(Y,X)).
+        % we do not want to unify X = Y but also notice these are not the same specs.
+        -> (variant(spec(SpecId, Existing), spec(SpecId, indirection(OtherSpec)))
+            -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
+            ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
+        ; assert(spec_indirection(SpecId, OtherSpec))).
 :- meta_predicate defspec_pred(+, 1).
 defspec_pred(SpecId, Predicate) :-
     (spec_exists(SpecId, Existing)
-      -> (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
-          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
-       ; assert(spec_predicate(SpecId, Predicate))).
+        -> (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
+            -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
+            ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
+        ; assert(spec_predicate(SpecId, Predicate))).
 :- meta_predicate defspec_pred_recursive(+, 3,3,4).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
-      -> (variant(spec(SpecId, Existing), spec(SpecId, predicate_recursive(Predicate, MergePred, MergePredInvariant)))
-          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
-       ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
+        -> (variant(spec(SpecId, Existing), spec(SpecId, predicate_recursive(Predicate, MergePred, MergePredInvariant)))
+            -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId])
+            ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId]))
+        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
 :- meta_predicate defspec_connective(+, 3,3,4).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
-      -> (variant(spec(SpecId, Existing), spec(SpecId, connective(Predicate, MergePred, MergePredInvariant)))
-          -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId]))
-           ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
-       ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
+        -> (variant(spec(SpecId, Existing), spec(SpecId, connective(Predicate, MergePred, MergePredInvariant)))
+            -> debug_format('spec is overwritten with itself, proceeding~n', [SpecId]))
+            ; format('plspec: spec ~w already exists, will not be redefined~n', [SpecId])
+        ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
 
 
 :- dynamic check_predicate/1.
@@ -111,10 +127,13 @@ set_error_handler(Pred) :-
 %% merge recursive specs
 both_eventually_true(V1, V2, Res) :-
     when((nonvar(V1); nonvar(V2)),
-          (V1 == true -> freeze(V2, Res = V2) %% look at the other co-routined variable
-         ; nonvar(V1) -> Res = V1 %% since it is not true
-         ; V2 == true -> freeze(V1, Res = V1)
-         ; nonvar(V2) -> Res = V2)).
+         (V1 == true 
+            -> freeze(V2, Res = V2) %% look at the other co-routined variable
+            ; nonvar(V1) 
+                -> Res = V1 %% since it is not true
+                ; V2 == true 
+                    -> freeze(V1, Res = V1)
+                    ; nonvar(V2) -> Res = V2)).
 
 invariand([], [], _, true).
 invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
@@ -184,8 +203,8 @@ check_posts([], [], []).
 check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
     evaluate_spec_match(Post, Arg, Res),
     (Res == true
-     -> check_posts(ArgT, PreT, PostT)
-      ; error_handler(X),
+        -> check_posts(ArgT, PreT, PostT)
+         ; error_handler(X),
         call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
 
 %% term expansion
@@ -204,7 +223,7 @@ spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
     evaluate_spec_match(Spec, Arg, R),
     (R == true
     -> spec_matches(ArgsT, Res, SpecT)
-     ; Res = spec_not_matched(Spec, Arg, in(R))).
+    ;  Res = spec_not_matched(Spec, Arg, in(R))).
 
 
 
