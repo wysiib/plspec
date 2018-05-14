@@ -253,7 +253,7 @@ user:term_expansion(A, B) :-
     prolog_load_context(module, Module),
     do_expand(A, Module, B).
 
-:- multifile user:term_expansion/6.
+:- multifile user:term_expansion/6. %TODO: Is this used?
 user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
     nonmember(plspec_token, Ids),
     prolog_load_context(module, Module),
