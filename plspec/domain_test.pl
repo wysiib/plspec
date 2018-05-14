@@ -5,6 +5,7 @@
 
 :- defspec(bar(X), one_of([X, atom(empty)])).
 :- defspec(foo(X), bar(X)).
+:- defspec(complex(X), one_of([bar(X),X])).
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
                             atom(empty)])).
 
@@ -18,7 +19,7 @@ test(hierarchy) :-
   dom_intersect(atom,atomic,atom).
 
 test(any) :-
-  dom_intersect(int,any,integer),
+  dom_intersect(float,any,float),
   dom_intersect(any,number,number),
   dom_intersect(atom,any,atom).
 
@@ -32,13 +33,19 @@ test(bottom) :-
 :- begin_tests(indirection).
 
 test(simple1) :-
-  dom_intersect(same(isabel),  same(isabel), atom(isabel)).
+  dom_intersect(same(isabel),  same(isabel), same(isabel)).
 
 test(simple2) :-
-  dom_intersect(bar(number), bar(integer),one_of([integer, atom(empty)])).
+  dom_intersect(bar(number), bar(integer),one_of([integer,atom(empty)])).
 
 test(simple3) :-
   dom_intersect(foo(float), bar(number), one_of([float, atom(empty)])).
+
+test(bar) :-
+  dom_intersect(bar(number),float,float),
+  dom_intersect(float,bar(number),float),
+  dom_intersect(bar(float),number,float),
+  dom_intersect(number,bar(float),float).
 
 :- end_tests(indirection).
 

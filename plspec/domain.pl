@@ -30,13 +30,20 @@ dom_super(h,c).
 % If A is from Domain X and Domain Y, we want to find the smallest
 % Domain Z of a
 
-dom_intersect(A,B,Res) :-
-  dom_intersect1(A,B,R),!,
+dom_intersect(X,Y,Res) :-
+  dom_intersect1(X,Y,R),!,
   (R = one_of(P) -> post_processing(one_of(P),Res) ; Res = R).
 dom_intersect(_,_,bottom) :- !.
 
+pre_processing(X,Y,PX,PY) :-
+  (spec_indirection(X,IndX) -> true ; IndX = X),
+  (spec_indirection(Y,IndY) -> true ; IndY = Y),
+  Change = (X \= IndX; Y \= IndY),!,
+  (Change -> pre_processing(IndX,IndY,PX,PY) ; PX=IndX, PY=IndY).
 
-post_processing(one_of(P),R) :-
+
+
+post_processing(one_of(P),R) :- !,
   sort(P,Sorted),
   (Sorted = []
     -> R = bottom
@@ -44,15 +51,12 @@ post_processing(one_of(P),R) :-
       -> R = Only
        ; R = one_of(P))).% Liste
 
+post_processing(R,R) :- !.
+
+
 dom_intersect1(List1,List2,Res) :-
     (is_list(List1); is_list(List2)), !,
-    g(List1,List2,Res).
-
-dom_intersect1(X,Y,A) :-
-    (spec_indirection(X,IndX) -> true ; IndX = X),
-    (spec_indirection(Y,IndY) -> true ; IndY = Y),
-    (X \= IndX; Y \= IndY),!,
-    dom_intersect1(IndX,IndY,A).
+    dom_intersect1_list(List1,List2,Res).
 
 % There is an one_of
 dom_intersect1(one_of(List1),one_of(List2),one_of(Res)) :-
@@ -71,21 +75,48 @@ dom_intersect1(X,and(List),Res) :- !,
     dom_intersect1(L,X,Res).
 
 
-% Atomic
+% basic
 dom_intersect1(X,X,X) :- !.
 
-dom_intersect1(X,any,X) :- !.
-dom_intersect1(any,X,X) :- !.
+dom_intersect1(X,any,X) :- spec_predicate(X,_).
+dom_intersect1(any,X,X) :- spec_predicate(X,_).
 
+dom_intersect1(X,Y,A) :-
+    (spec_indirection(X,IndX) -> true ; IndX = X),
+    (spec_indirection(Y,IndY) -> true ; IndY = Y),
+    (X \= IndX; Y \= IndY),!,
+    dom_intersect1(IndX,IndY,A).
+
+%hierarchy
 dom_intersect1(X,Y,X) :- dom_super(X,Y), !.
 dom_intersect1(Y,X,X) :- dom_super(X,Y), !.
 
 dom_intersect1(X,Y,X) :-
   dom_super(X,ParentX),
+  spec_predicate(Y,_),
   dom_intersect1(ParentX,Y,ParentX), !.
 dom_intersect1(Y,X,X) :-
   dom_super(X,ParentX),
+  spec_predicate(Y,_),
   dom_intersect1(ParentX,Y,ParentX), !.
+
+dom_intersect1(tuple(X),tuple(Y),tuple(A)) :- !,
+  dom_intersect1(X,Y,A).
+
+dom_intersect1(list(X),list(Y),list(A)) :- !,
+  dom_intersect1(X,Y,A).
+
+dom_intersect1(compound(CompX),compound(CompY),compound(CompA)) :- !,
+  CompX =.. [Fun|X],
+  CompY =.. [Fun|Y],
+  dom_intersect1(X,Y,A),
+  CompA =.. [Fun|A].
+
+dom_intersect1(CompX,CompY,CompA) :-
+  CompX =.. [Fun|X],
+  CompY =.. [Fun|Y],!,
+  dom_intersect1(X,Y,A),
+  CompA =.. [Fun|A].
 
 
 
@@ -99,8 +130,9 @@ dom_intersect_one_ofs([Head|Tail],List2,Result) :-
 dom_intersect_one_of_with_elem([],_,[]) :- !.
 dom_intersect_one_of_with_elem([H|T],X,Res) :-
   (dom_intersect1(H,X,HeadIntersect)
-    -> Res = [HeadIntersect|TailIntersect]
-    ;  Res = TailIntersect),
+    ->  post_processing(HeadIntersect,Cleared),
+        Res = [Cleared|TailIntersect]
+     ;  Res = TailIntersect),
   dom_intersect_one_of_with_elem(T,X,TailIntersect).
 
 
