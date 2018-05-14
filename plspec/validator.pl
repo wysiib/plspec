@@ -24,6 +24,8 @@ spec_predicate(var, var).
 spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
+    
+
 
 spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
 spec_predicate_recursive(list(X), list(X), and, and_invariant).
@@ -31,6 +33,7 @@ spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
 
 spec_indirection(int, integer).
 spec_indirection([X], list(X)).
+spec_indirection(same(X), atom(X)).
 
 spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_connective(one_of(X), spec_and(X), or, or_invariant).
@@ -49,6 +52,7 @@ spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C).
 true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
+
 
 valid(Spec, Val) :-
     evaluate_spec_match(Spec, Val, Success),
