@@ -13,8 +13,8 @@
 
 :- use_module(validator).
 :- use_module(prettyprinter).
-:- use_module(library(plunit)).
 
+:- use_module(library(lists)).
 :- use_module(library(terms), [variant/2]).
 
 :- dynamic asserted_spec_pre/2, asserted_spec_invariant/2, asserted_spec_invariant/3, asserted_spec_post/3.

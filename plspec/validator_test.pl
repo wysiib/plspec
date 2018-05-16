@@ -1,6 +1,8 @@
-:- module(validator_spec_test, []).
+:- module(validator_test, []).
 :- use_module(validator).
+:- use_module(plspec).
 :- use_module(library(plunit)).
+:- use_module(validator).
 
 
 :- begin_tests(setup).
