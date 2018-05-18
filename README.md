@@ -91,7 +91,9 @@ We have implemented a few specs:
 
 * `any` allows any value
 * `atomic` allows atomic values
+* `atom` allows any atom
 * `integer` (or `int` for short) allows integer values
+* `float` allows float values
 * `number` allows any kind of numbers
 * `var` allows variables
 * `ground` allows ground values (be careful if you use it in an invariant! There, it is equivalent to `any`.)
@@ -117,7 +119,7 @@ We had extensibility in mind when we wrote *plspec*. Of course, you can write yo
 
 ```
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
-                            compound(empty)])).
+                            atom(empty)])).
 ```
 
 And we're done already. A tree either is empty, or a term of arity 3 where the left and right arguments are trees themselves and the center argument is a value of the given type.
