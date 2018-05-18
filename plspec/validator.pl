@@ -1,4 +1,4 @@
-:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, 
+:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4,
                       spec_exists/1, spec_exists/2,
                       true/1, atom/2,
                       valid/2,
@@ -24,7 +24,7 @@ spec_predicate(var, var).
 spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
-    
+
 
 
 spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
@@ -57,6 +57,12 @@ atom(X, Y) :- atom(Y), X = Y.
 valid(Spec, Val) :-
     evaluate_spec_match(Spec, Val, Success),
     Success == true.
+
+list_valid([],[]) :- !.
+list_valid([Spec|Specs],[Val|Vals]) :-
+  valid(Spec, Val),
+  list_valid(Specs, Vals).
+
 
 % evaluate_spec_match
 %% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
