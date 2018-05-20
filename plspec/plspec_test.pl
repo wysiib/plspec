@@ -1,12 +1,12 @@
 :- module(plspec_test, []).
-:- use_module(plspec).
+:- use_module(plspec_checker).
 :- use_module(library(plunit)).
 :- enable_all_spec_checks.
 :- use_module('plspec_test.plspec').
 
-:- plspec:spec_pre(my_member/2,[any,[any]]).
-:- plspec:spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
-:- plspec:spec_post(my_member/2,[any,var],[any,[any]]).
+:- spec_pre(my_member/2,[any,[any]]).
+:- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
+:- spec_post(my_member/2,[any,var],[any,[any]]).
 my_member(E,[E|_]).
 my_member(E,[_|T]) :-
     my_member(E,T).
