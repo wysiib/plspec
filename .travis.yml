@@ -2,8 +2,6 @@ language: objective-c
 
 before_install:
   - brew update
-  - brew tap homebrew/x11
-  - brew update
   - brew install swi-prolog
   - brew outdated swi-prolog || brew upgrade swi-prolog
 
