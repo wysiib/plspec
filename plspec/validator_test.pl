@@ -1,6 +1,5 @@
-:- module(validator_lspec2_test, []).
-
-:- use_module(plspec2).
+:- module(validator_spec_test, []).
+:- use_module(validator).
 :- use_module(library(plunit)).
 
 
@@ -25,69 +24,69 @@ test(spec_exists_list) :-
 
 :- end_tests(setup).
 
-:- begin_tests(validate).
+:- begin_tests(valid).
 
 test(any) :-
-    validate(any, _),
-    validate(any, 1),
-    validate(any, []),
-    validate(any, foo(_, _)),
-    validate(any, foo).
+    valid(any, _),
+    valid(any, 1),
+    valid(any, []),
+    valid(any, foo(_, _)),
+    valid(any, foo).
 
 test(ground) :-
-    \+ validate(ground, _),
-    validate(ground, 1),
-    validate(ground, []),
-    \+ validate(ground, foo(_, _)),
-    validate(ground, foo(1, 2)),
-    validate(ground, foo).
+    \+ valid(ground, _),
+    valid(ground, 1),
+    valid(ground, []),
+    \+ valid(ground, foo(_, _)),
+    valid(ground, foo(1, 2)),
+    valid(ground, foo).
 
 test(list) :-
-    \+ validate([any], _),
-    validate([any], []),
-    validate([any], [a]),
-    validate([any], [1]),
-    validate([any], [_]),
-    validate([any], [[]]),
-    validate([any], [any]).
+    \+ valid([any], _),
+    valid([any], []),
+    valid([any], [a]),
+    valid([any], [1]),
+    valid([any], [_]),
+    valid([any], [[]]),
+    valid([any], [any]).
 
 test(list2) :-
-    validate([integer], [1,2]).
+    valid([integer], [1,2]).
 
 test(list_of_list) :-
-    \+ validate([[any]], _),
-    \+ validate([[any]], [a]),
-    \+ validate([[any]], [_]),
-    validate([[any]], []),
-    validate([[any]], [[1]]),
-    validate([[any]], [[a]]),
-    validate([[any]], [[]]).
+    \+ valid([[any]], _),
+    \+ valid([[any]], [a]),
+    \+ valid([[any]], [_]),
+    valid([[any]], []),
+    valid([[any]], [[1]]),
+    valid([[any]], [[a]]),
+    valid([[any]], [[]]).
 
 test(compounds) :-
-    validate(compound(foo(any)), foo(_)),
-    validate(compound(foo(any)), foo(a)),
-    \+ validate(compound(foo(any)), bar(a)),
-    \+ validate(compound(foo(any, any)), foo(a)),
-    validate(compound(foo(any, any)), foo(a, a)),
-    \+ validate(compound(foo(any, var)), foo(a, a)).
+    valid(compound(foo(any)), foo(_)),
+    valid(compound(foo(any)), foo(a)),
+    \+ valid(compound(foo(any)), bar(a)),
+    \+ valid(compound(foo(any, any)), foo(a)),
+    valid(compound(foo(any, any)), foo(a, a)),
+    \+ valid(compound(foo(any, var)), foo(a, a)).
 
 test(tuples) :-
-    validate(tuple([any]), [_]),
-    \+ validate(tuple([any]), []),
-    \+ validate(tuple([any]), [_, _]),
-    validate(tuple([any, any]), [_, _]).
+    valid(tuple([any]), [_]),
+    \+ valid(tuple([any]), []),
+    \+ valid(tuple([any]), [_, _]),
+    valid(tuple([any, any]), [_, _]).
 
 test(indirection) :-
-    validate(integer, 3).
+    valid(integer, 3).
 
 test(one_of) :-
-    validate(one_of([integer, atomic]), 3),
-    validate(one_of([integer, atomic]), abc),
-    \+ validate(one_of([integer, atomic]), [1]),
-    \+ validate(one_of([integer, atomic]), _).
+    valid(one_of([integer, atomic]), 3),
+    valid(one_of([integer, atomic]), abc),
+    \+ valid(one_of([integer, atomic]), [1]),
+    \+ valid(one_of([integer, atomic]), _).
 
 test(and) :-
-    validate(and([integer, ground]), 3),
-    \+ validate(and([integer, var]), 3).
+    valid(and([integer, ground]), 3),
+    \+ valid(and([integer, var]), 3).
 
-:- end_tests(validate).
+:- end_tests(valid).
