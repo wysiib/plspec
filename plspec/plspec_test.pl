@@ -4,9 +4,9 @@
 :- enable_all_spec_checks.
 :- use_module('plspec_test.plspec').
 
-:- spec_pre(my_member/2,[any,[any]]).
-:- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
-:- spec_post(my_member/2,[any,var],[any,[any]]).
+:- plspec:spec_pre(my_member/2,[any,[any]]).
+:- plspec:spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
+:- plspec:spec_post(my_member/2,[any,var],[any,[any]]).
 my_member(E,[E|_]).
 my_member(E,[_|T]) :-
     my_member(E,T).
@@ -15,7 +15,7 @@ foo(A,B) :-
     my_member(A,B).
 
 
-:- begin_tests(my_member_spec, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(my_member_spec, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(instantiated_call, [nondet]) :-
     my_member(a, [a, b, c]).
@@ -48,7 +48,7 @@ my_compound_foo(foo(_)).
 
 
 
-:- begin_tests(my_compound_foo, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(my_compound_foo, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(nonconform_call, [throws(_)]) :-
     my_compound_foo(foo(_)).
@@ -73,7 +73,7 @@ my_tuple_with_incorrect_spec([X, X]).
 
 bar(A) :-
     my_tuple_with_incorrect_spec(A).
-:- begin_tests(my_tuple, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(my_tuple, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform) :-
     my_tuple_with_incorrect_spec([a, a]).
@@ -96,7 +96,7 @@ atom_member(X, [_|T]) :-
     atom_member(X, T).
 
 
-:- begin_tests(atom_member, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(atom_member, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform, [nondet]) :-
     atom_member(a, [a,b,c]).
@@ -119,7 +119,7 @@ test(not_conform3, [throws(_)]) :-
 my_atomic([_|_]) :- !, fail.
 my_atomic(_).
 
-:- begin_tests(my_atomic, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(my_atomic, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform) :-
     my_atomic([]).
@@ -161,7 +161,7 @@ if_my_atomic_then_atom(X) :-
 :- plspec:spec_pre(my_or_test/1, [one_of([ground, ground])]).
 my_or_test(_).
 
-:- begin_tests(my_or_test, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(my_or_test, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform) :-
     my_or_test(foo).
@@ -175,7 +175,7 @@ test(nonconform, [throws(_)]) :-
 :- plspec:spec_pre(my_and_test/1, [and([atomic, ground])]).
 my_and_test(_).
 
-:- begin_tests(my_and_test, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(my_and_test, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform) :-
     my_and_test(foo).
@@ -195,7 +195,7 @@ invariant_violator(X) :-
     X = [1], X == [2]. % fail in a more sophisticated way
 invariant_violator(a).
 
-:- begin_tests(invariant_violator_test, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(invariant_violator_test, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform) :-
     invariant_violator(a).
@@ -215,7 +215,7 @@ partial_instantiator([1,_]).
 partial_instantiator([_,2]).
 partial_instantiator([_,a]).
 
-:- begin_tests(partial_invariant_instantiation, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(partial_invariant_instantiation, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(conform, [nondet]) :-
     partial_instantiator([_,_]).
@@ -243,7 +243,7 @@ test(nonconform2, [throws(_)]) :-
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
                             atom(empty)])).
 
-:- begin_tests(trees, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(trees, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(empty_is_tree) :-
     valid(tree(int), empty).
@@ -274,7 +274,7 @@ test(tree3) :-
 int(even, X) :- 0 is X mod 2.
 int(odd, X) :- 1 is X mod 2.
 
-:- begin_tests(self_defined_int, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(self_defined_int, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(zero_is_even) :-
     valid(int(even), 0).
@@ -295,7 +295,7 @@ test(one_is_not_even) :-
 :- spec_post(bind_to_zero/1, [var], [ground]).
 bind_to_zero(0).
 
-:- begin_tests(violated_postcondition, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(violated_postcondition, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(postcondition_violated, [throws(_)]) :-
     bind_to_zero(_).
@@ -305,7 +305,7 @@ test(postcondition_violated, [throws(_)]) :-
 
 this_pred_has_an_extern_spec(_).
 
-:- begin_tests(externally_stored_spec, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
+:- begin_tests(externally_stored_spec, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 test(ints_are_okay) :-
     this_pred_has_an_extern_spec(1).
@@ -314,93 +314,3 @@ test(atoms_are_not, [throws(_)]) :-
     this_pred_has_an_extern_spec(a).
 
 :- end_tests(externally_stored_spec).
-
-:- use_module(plspec).
-:- begin_tests(lists).
-
-test(empty_list) :-
-    list(Spec, [], Specs, Vals), !,
-    var(Spec), Specs == [], Vals == [].
-
-test(list1) :-
-    list(int, [1,2,3], Specs, Vals), !,
-    Specs == [int, int, int], Vals == [1, 2, 3].
-
-test(list2) :-
-    list(list(int), [1,2,3], Specs, Vals), !,
-    Specs == [list(int), list(int), list(int)], Vals == [1, 2, 3].
-
-test(list3) :-
-    list(int, [X,Y,Z], Specs, Vals), !,
-    Specs == [int, int, int], Vals == [X, Y, Z].
-
-:- end_tests(lists).
-
-
-:- begin_tests(invariants, [setup(set_error_handler(throw)), cleanup(set_error_handler(plspec_default_error_handler))]).
-
-test(conform) :-
-    setup_uber_check(here, int, _).
-
-test(conform2) :-
-    setup_uber_check(here, int, X), !, X = 2.
-
-test(nonconform, [throws(_)]) :-
-    setup_uber_check(here, int, X), !, X = a.
-
-test(list_empty) :-
-    setup_uber_check(here, list(int), _).
-
-test(list_ground) :-
-    setup_uber_check(here, list(int), [1,2,3]).
-
-test(list_ground_later) :-
-    setup_uber_check(here, list(int), X), !, X = [1,2,3].
-
-test(partial_list_instantiation) :-
-    setup_uber_check(here, list(int), X), !, X = [1,_,3].
-
-test(partial_list_instantiation2) :-
-    setup_uber_check(here, list(int), X), !, X = [_,_,3].
-
-test(partial_list_instantiation3) :-
-    setup_uber_check(here, list(int), X), !, X = [_|_].
-
-test(partial_list_instantiation4, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [a|_].
-
-test(partial_list_instantiation5, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [_, a|_].
-
-test(partial_list_instantiation6, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [_, _|a].
-
-test(partial_list_instantiation7, [throws(_)]) :-
-    setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,a]].
-
-test(partial_list_instantiation8) :-
-    setup_uber_check(here, list(int), X), !, X = [1, _|[4,5,6]].
-
-test(one_of1) :-
-    setup_uber_check(here, one_of([int, atomic]), _).
-
-test(one_of2) :-
-    setup_uber_check(here, one_of([int, atomic]), X), !, X = 1.
-
-test(one_of3) :-
-    setup_uber_check(here, one_of([int, atomic]), X), !, X = a.
-
-test(one_of4, throws(_)) :-
-    setup_uber_check(here, one_of([int, atomic]), X), !, X = [1].
-
-:- end_tests(invariants).
-
-
-
-:- begin_tests(spec_and).
-
-test(instantiated_var) :-
-    spec_and([int, atomic], X, List, VarRepeated), !,
-    List == [int, atomic], VarRepeated == [X, X].
-
-:- end_tests(spec_and).

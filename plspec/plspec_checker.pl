@@ -4,15 +4,17 @@
         spec_pre/2, spec_post/3, spec_invariant/2,
         defspec/2, defspec_pred/2,
         defspec_pred_recursive/4, defspec_connective/4,
-        spec_set_debug_mode_on/0, spec_set_debug_mode_off/0,
         %validator predicates:
         valid/2,
+        %logger
+        set_loglevel/1, log/3,
         %multifile:
         asserted_spec_pre/2, asserted_spec_invariant/2,
         asserted_spec_post/3, check_predicate/1
         ]).
 :- use_module(plspec).
 :- use_module(validator).
+:- use_module(logger).
 
 expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
     Head =.. [Functor|Args],
@@ -59,19 +61,22 @@ do_expand(':-'(plspec:spec_pre(Predicate/Arity, Spec)), Module, ':-'(plspec:spec
 do_expand(':-'(plspec:spec_invariant(Predicate/Arity, Spec)), Module, ':-'(plspec:spec_invariant(Module:Predicate/Arity, Spec))).
 do_expand(':-'(plspec:spec_post(Predicate/Arity, SpecPre, SpecPost)), Module, ':-'(plspec:spec_post(Module:Predicate/Arity, SpecPre, SpecPost))).
 do_expand(':-'(A, B), Module, ':-'(NA, NB)) :-
+    log(debug,'do_expand of ~w',[':-'(A, B)]),
     expandeur(':-'(A, B), Module, ':-'(NA, NB)).
 do_expand(A, Module, ':-'(NA, NB)) :-
+    log(debug,'do_expand of ~w',[A]),
     expandeur(':-'(A, true), Module, ':-'(NA, NB)).
 do_expand(A, _Module, A).
 
 :- multifile term_expansion/2.
 user:term_expansion(A, B) :-
-    debug_format('plspec: term-expansion of ~w', [A]),
+    log(debug,'term-expansion SWI of ~w', [A]),
     prolog_load_context(module, Module),
     do_expand(A, Module, B).
 
 :- multifile user:term_expansion/6. %TODO: Is this used?
 user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
+    log(debug,'term-expansion SICTUS of ~w', [Term1]),
     nonmember(plspec_token, Ids),
     prolog_load_context(module, Module),
     do_expand(Term1, Module, Term2).
