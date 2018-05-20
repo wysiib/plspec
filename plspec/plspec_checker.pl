@@ -1,7 +1,17 @@
-:- module(plspec_checker, [enable_all_spec_checks/0,
-      spec_pre/2, spec_post/3, spec_invariant/2,
-      defspec/2, defspec_pred/2]).
+:- module(plspec_checker, [
+        %plspec predicates:
+        enable_all_spec_checks/0,
+        spec_pre/2, spec_post/3, spec_invariant/2,
+        defspec/2, defspec_pred/2,
+        defspec_pred_recursive/4, defspec_connective/4,
+        %validator predicates:
+        valid/2,
+        %multifile:
+        asserted_spec_pre/2, asserted_spec_invariant/2,
+        asserted_spec_post/3, check_predicate/1
+        ]).
 :- use_module(plspec).
+:- use_module(validator).
 
 expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
     Head =.. [Functor|Args],
