@@ -3,7 +3,8 @@
                   setup_uber_check/3,which_posts/5,check_posts/3,
                   plspec_some/2, error_not_matching_any_pre/3,
                   enable_spec_check/1, enable_all_spec_checks/0,
-                  spec_set_debug_mode/0,
+                  spec_set_debug_mode_on/0, spec_set_debug_mode_off/0,
+                  debug_format/2,
                   set_error_handler/1,
                   spec_and/4,
                   list/4,
@@ -63,10 +64,12 @@ spec_post(Pred,PreSpec,PostSpec) :-
 
 :- dynamic spec_debug/0.
 debug_format(Format, Args) :-
-    (spec_debug -> format(Format, Args) ; true).
+    (spec_debug -> format(Format, Args),nl ; true).
 
-spec_set_debug_mode :-
+spec_set_debug_mode_on :-
     assert(spec_debug).
+spec_set_debug_mode_off :-
+    retractall(spec_debug).
 
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId, Existing)

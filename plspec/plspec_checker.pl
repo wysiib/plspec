@@ -4,6 +4,7 @@
         spec_pre/2, spec_post/3, spec_invariant/2,
         defspec/2, defspec_pred/2,
         defspec_pred_recursive/4, defspec_connective/4,
+        spec_set_debug_mode_on/0, spec_set_debug_mode_off/0,
         %validator predicates:
         valid/2,
         %multifile:
@@ -65,6 +66,7 @@ do_expand(A, _Module, A).
 
 :- multifile term_expansion/2.
 user:term_expansion(A, B) :-
+    debug_format('plspec: term-expansion of ~w', [A]),
     prolog_load_context(module, Module),
     do_expand(A, Module, B).
 
