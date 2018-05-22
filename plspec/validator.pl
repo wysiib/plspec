@@ -85,7 +85,9 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
     (call(Predicate, Val)
      -> Res = true
      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (copy_term(Val, Valii), variant(Valii, Vali)
+      -> true
+      ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 % a recursive spec
 evaluate_spec_match_aux(Spec, Val, Res) :-

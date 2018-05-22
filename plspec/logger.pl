@@ -34,13 +34,10 @@ set_loglevel(nothing) :-
 
 
 log(X, Format, Args) :-
-  (possible_loglevel(X)
-    -> true
-    ; log(error,'~w is not a valid loglevel!', [X]),
-      fail),
+  (possible_loglevel(X) -> true ; format('~w~t~10 plspec: ~w is not a valid loglevel!', [error, X])),
   (loglevel(X)
-    -> format('~w    ~w~`.t~20|',[plspec, X, a]), format(Format,Args), nl
-    ; true).
+    -> format('~w ~w~`.t~20|',[plspec, X, a]), format(Format,Args), nl
+    ;  true).
 
 log(X, Format) :-
   log(X, Format, []).
