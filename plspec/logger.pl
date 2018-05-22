@@ -1,4 +1,4 @@
-:- module(logger, [log/3, set_loglevel/1, possible_loglevel/1]).
+:- module(logger, [log/3, log/2, set_loglevel/1, possible_loglevel/1]).
 
 possible_loglevel(info).
 possible_loglevel(warning).
@@ -34,7 +34,13 @@ set_loglevel(nothing) :-
 
 
 log(X, Format, Args) :-
-  (possible_loglevel(X) -> true ; format('~w~t~10 plspec: ~w is not a valid loglevel!', [error, X])),
+  (possible_loglevel(X)
+    -> true
+    ; log(error,'~w is not a valid loglevel!', [X]),
+      fail),
   (loglevel(X)
-    -> format('~w ~w~`.t~20|',[plspec, X, a]), format(Format,Args), nl
+    -> format('~w    ~w~`.t~20|',[plspec, X, a]), format(Format,Args), nl
     ; true).
+
+log(X, Format) :-
+  log(X, Format, []).

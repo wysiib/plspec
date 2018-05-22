@@ -7,7 +7,9 @@
                   spec_and/4,
                   list/4,
                   valid/2,
-                  asserted_spec_pre/2, asserted_spec_invariant/2, asserted_spec_post/3, check_predicate/1 % called by term expander
+                  asserted_spec_pre/2, asserted_spec_invariant/2,
+                  asserted_spec_post/3,
+                  check_predicate/1 % called by term expander
                ]).
 
 :- use_module(validator).
@@ -16,7 +18,8 @@
 
 :- use_module(library(terms), [variant/2]).
 
-:- dynamic asserted_spec_pre/2, asserted_spec_invariant/2, asserted_spec_invariant/3, asserted_spec_post/3.
+:- dynamic asserted_spec_pre/2, asserted_spec_invariant/2,
+asserted_spec_invariant/3, asserted_spec_post/3.
 
 %% set up facts
 
@@ -28,76 +31,113 @@ asserted_spec_invariant(Pred, Spec) :-
 spec_pre(Pred,PreSpec) :-
     (ground(PreSpec)
         -> true
-        ; log(info,'a pre spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+        ; log(error,'A pre spec should be ground; got ~w in ~w.',
+              [PreSpec, Pred]),
+          fail),
     (Pred = _:_/Arity),
     (length(PreSpec, Arity)
         -> true
-        ; log(info,'a pre spec of ~w does not match in length~n', [Pred])),
-    assert(asserted_spec_pre(Pred,PreSpec)).
+        ; log(warning,'A pre spec of ~w does not match in length.', [Pred])),
+    assert(asserted_spec_pre(Pred,PreSpec)),
+    log(debug,'Asserted spec pre for ~w.',[Pred]).
 spec_invariant(Pred, InvariantSpec) :-
     (ground(InvariantSpec)
         -> true
-        ; log(info,'an invariant spec should be ground, got ~w in ~w~n', [InvariantSpec, Pred]), fail),
+        ; log(error,'An invariant spec should be ground; got ~w in ~w.',
+              [InvariantSpec, Pred]),
+          fail),
     Pred = _:_/Arity,
     (length(InvariantSpec, Arity)
         -> true
-        ; log(info,'invariant spec of ~w does not match in length~n', [Pred])),
+        ; log(warning,'Invariant spec of ~w does not match in length.',
+              [Pred])),
     (maplist(named_spec, InvariantSpec, Names, Specs)
         -> assert(asserted_spec_invariant(Pred, Names, Specs))
-        ; assert(asserted_spec_invariant(Pred, InvariantSpec))).
+        ; assert(asserted_spec_invariant(Pred, InvariantSpec))),
+    log(debug,'Assertedc spec invariant for ~w.',[Pred]).
 spec_post(Pred,PreSpec,PostSpec) :-
     (ground(PreSpec)
         -> true
-        ; log(info,'an post spec should be ground, got ~w in ~w~n', [PreSpec, Pred]), fail),
+        ; log(error,'A post spec should be ground; got ~w in ~w.',
+              [PreSpec, Pred]),
+          fail),
     (ground(PostSpec)
         -> true
-        ; log(info,'an post spec should be ground, got ~w in ~w~n', [PostSpec, Pred]), fail),
+        ; log(error,'A post spec should be ground; got ~w in ~w.',
+              [PostSpec, Pred]),
+          fail),
     Pred = _:_/Arity,
     (length(PreSpec, Arity)
         -> true
-        ; log(info,'a post spec (precondition) of ~w does not match in length~n', [Pred])),
+        ; log(warning,
+              'A post spec (precondition) of ~w does not match in length.',
+              [Pred])),
     (length(PostSpec, Arity)
         -> true
-        ; log(info,'a post spec (postcondition) of ~w does not match in length~n', [Pred])),
-    assert(asserted_spec_post(Pred,PreSpec,PostSpec)).
+        ; log(info,
+              'A post spec (postcondition) of ~w does not match in length~n',
+              [Pred])),
+    assert(asserted_spec_post(Pred,PreSpec,PostSpec)),
+    log(debug,'Asserted spec post for ~w.',[Pred]).
 
-
+:- meta_predicate defspec_pred(+, 1).
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId, Existing)
         %% we use variant in order to determine whether it is actually the same spec;
         % for example, consider defspec(foo(X,Y), bar(X,Y)), defspec(foo(X,Y), bar(Y,X)).
         % we do not want to unify X = Y but also notice these are not the same specs.
-        -> (variant(spec(SpecId, Existing), spec(SpecId, indirection(OtherSpec)))
-            -> log(info,'spec is overwritten with itself, proceeding~n', [SpecId])
-            ; log(warning,'spec ~w already exists, will not be redefined~n', [SpecId]))
-        ; assert(spec_indirection(SpecId, OtherSpec))).
+        -> (variant(spec(SpecId, Existing),
+                    spec(SpecId, indirection(OtherSpec)))
+            -> log(info,'spec is overwritten with itself, proceeding~n',
+                    [SpecId])
+            ; log(warning,'spec ~w already exists, will not be redefined~n',
+                    [SpecId]))
+        ; assert(spec_indirection(SpecId, OtherSpec)),
+          log(info,'Spec ~w defined.',[SpecId])).
+
 :- meta_predicate defspec_pred(+, 1).
-defspec_pred(SpecId, Predicate) :-
+  defspec_pred(SpecId, Predicate) :-
     (spec_exists(SpecId, Existing)
-        -> (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
-            -> log(info,'spec is overwritten with itself, proceeding~n', [SpecId])
-            ; log(warning,'spec ~w already exists, will not be redefined~n', [SpecId]))
-        ; assert(spec_predicate(SpecId, Predicate))).
+      -> (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
+            -> log(info,'spec is overwritten with itself, proceeding~n',
+                    [SpecId])
+            ; log(warning,'spec ~w already exists, will not be redefined~n',
+                  [SpecId]))
+      ; assert(spec_predicate(SpecId, Predicate))).
+
 :- meta_predicate defspec_pred_recursive(+, 3,3,4).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
-        -> (variant(spec(SpecId, Existing), spec(SpecId, predicate_recursive(Predicate, MergePred, MergePredInvariant)))
-            -> log(info,'spec is overwritten with itself, proceeding~n', [SpecId])
-            ; log(warning,'spec ~w already exists, will not be redefined~n', [SpecId]))
-        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred, MergePredInvariant))).
+        -> (variant(spec(SpecId, Existing),
+                    spec(SpecId, predicate_recursive( Predicate, MergePred,
+                                                      MergePredInvariant)))
+            -> log(info,'spec is overwritten with itself, proceeding~n',
+                  [SpecId])
+            ; log(warning,'spec ~w already exists, will not be redefined~n',
+                  [SpecId]))
+        ; assert(spec_predicate_recursive(SpecId, Predicate, MergePred,
+                                            MergePredInvariant)),
+          log(info, 'Recursive spec ~w defined.',[SpecId])).
 :- meta_predicate defspec_connective(+, 3,3,4).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing)
-        -> (variant(spec(SpecId, Existing), spec(SpecId, connective(Predicate, MergePred, MergePredInvariant)))
-            -> log(info,'spec is overwritten with itself, proceeding~n', [SpecId]))
-            ; log(warning,'spec ~w already exists, will not be redefined~n', [SpecId])
-        ; assert(spec_connective(SpecId, Predicate, MergePred, MergePredInvariant))).
+        -> (variant(spec(SpecId, Existing),
+                    spec(SpecId, connective(Predicate, MergePred,
+                                            MergePredInvariant)))
+            -> log(warning,'spec is overwritten with itself, proceeding~n',
+                    [SpecId]))
+            ; log(warning,'spec ~w already exists, will not be redefined~n',
+                    [SpecId])
+        ; assert(spec_connective(SpecId, Predicate, MergePred,
+                                  MergePredInvariant)),
+          log(info,'Connective spec ~w defined.')).
 
 
 :- dynamic check_predicate/1.
 enable_spec_check([H|T]) :- !,
     maplist(enable_spec_check, [H|T]).
 enable_spec_check(X) :-
+    log(info, 'Spec check enabled for ~w.',[X]),
     assert(check_predicate(X)).
 enable_all_spec_checks :-
     assert(check_predicate(_)).
@@ -118,6 +158,7 @@ set_error_handler(Pred) :-
 
 %% check coroutine magic
 setup_uber_check(Location,Spec,Val) :-
+    log(debug,'setup_uber_check'),
     setup_check(Location,Res,Spec,Val),
     freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
 
