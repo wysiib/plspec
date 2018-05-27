@@ -49,14 +49,14 @@ post_processing(one_of(P),R) :- !,
     -> R = bottom
     ; (Sorted = [Only]
       -> R = Only
-       ; R = one_of(P))).% Liste
+      ;  R = one_of(P))).% Liste
 
 post_processing(R,R) :- !.
 
 
 dom_intersect1(List1,List2,Res) :-
-    (is_list(List1); is_list(List2)), !,
-    dom_intersect1_list(List1,List2,Res).
+  (is_list(List1); is_list(List2)), !,
+  dom_intersect1_list(List1,List2,Res).
 
 % There is an one_of
 dom_intersect1(one_of(List1),one_of(List2),one_of(Res)) :-
@@ -71,8 +71,8 @@ dom_intersect1(and(List),X,Res) :- !,
   dom_intersect(List,L),
   dom_intersect1(L,X,Res).
 dom_intersect1(X,and(List),Res) :- !,
-    dom_intersect(List,L),
-    dom_intersect1(L,X,Res).
+  dom_intersect(List,L),
+  dom_intersect1(L,X,Res).
 
 
 % basic
