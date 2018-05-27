@@ -36,8 +36,8 @@ check_ground(Pred, Spec, SpecType) :-
   (ground(Spec)
     ->  true
      ;  log(error,'~w should be ground; got ~w in ~w',
-          [SpecType, Spec, Pred]),
-        fail).
+          [SpecType, Spec, Pred])).%,
+        %fail).
 
 check_arity(Pred, Spec, SpecType, Arity) :-
   (length(Spec, Arity)
@@ -58,7 +58,7 @@ spec_invariant(Pred, InvariantSpec) :-
   (maplist(named_spec, InvariantSpec, Names, Specs)
     ->  assert(asserted_spec_invariant(Pred, Names, Specs))
      ;  assert(asserted_spec_invariant(Pred, InvariantSpec))),
-  log(debug,'Assertedc spec invariant for ~w.',[Pred]).
+  log(debug,'Asserted spec invariant for ~w.',[Pred]).
 
 spec_post(Pred,PreSpec,PostSpec) :-
   check_ground(Pred, PreSpec, 'post-specs'),
@@ -204,7 +204,7 @@ plspec_some1([H|_], Goal) :-
 plspec_some1([_|T], Goal) :-
   plspec_some1(T, Goal).
 
-:- public spec_matches/3. %THIS SEEMS NOT USED - TO DO: investigate
+:- public spec_matches/3.
 spec_matches([], true, []).
 spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
   evaluate_spec_match(Spec, Arg, R),

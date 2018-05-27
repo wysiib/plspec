@@ -14,16 +14,18 @@
 
 
 % Definition of spec predicates
+spec_predicate(number, number).
+spec_predicate(integer, integer).
+
+spec_predicate(float, float).
 spec_predicate(atomic, atomic).
 spec_predicate(atom, atom).
 spec_predicate(atom(X), atom(X)). %TODO: why is this needed?
-spec_predicate(integer, integer).
-spec_predicate(number, number).
-spec_predicate(float, float).
 spec_predicate(var, var).
 spec_predicate(ground, ground).
 spec_predicate(nonvar, nonvar).
 spec_predicate(any, true).
+spec_predicate(any(X), any(X)).
 
 
 
@@ -52,6 +54,8 @@ spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C).
 true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
+:- public any/2.
+any(X,Y) :- spec_predicate(X,DefSpec), call(DefSpec,Y).
 
 
 valid(Spec, Val) :-
@@ -68,8 +72,8 @@ list_valid([Spec|Specs],[Val|Vals]) :-
 %% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
 evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
     nonvar(Spec),
-\+ spec_exists(Spec), !,
-log(warning,'spec ~w not found~n', [Spec]).
+    \+ spec_exists(Spec), !,
+    log(warning,'spec ~w not found~n', [Spec]).
 evaluate_spec_match(Spec, Val, Res) :-
     %spec_exists(Spec),
     evaluate_spec_match_aux(Spec, Val, Res).
