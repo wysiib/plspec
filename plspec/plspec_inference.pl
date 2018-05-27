@@ -1,3 +1,6 @@
+:- module(plspec_inference,
+          [contains_spec/2, merge_two_specs/3]).
+
 :- use_module(plspec).
 :- use_module(library(lists), [exclude/3]).
 
@@ -74,29 +77,7 @@ contains_spec(Spec1, Spec2) :-
     SpecWithVariables1 = Spec1,
     maplist(contains_spec, Vars1, Vars2).
 
-:- begin_tests(contains_spec).
 
-test(simple_contained) :-
-    contains_spec(integer, integer).
-
-test(contained1) :-
-    contains_spec(one_of([atom, integer]), integer).
-
-test(contained2) :-
-    contains_spec(one_of([atom, integer]), atom).
-
-test(not_contained) :-
-    \+ contains_spec(one_of([atom, integer]), atomic).
-
-test(hard_contained) :-
-    trace,
-    contains_spec(one_of([list(one_of([integer, atom]))]), list(integer)).
-
-%% TODO: tests with more than one variable
-% e.g. compound, tuple, ...
-
-
-:- end_tests(contains_spec).
 
 merge_two_specs(X, X, X).
 merge_two_specs(one_of(SpecSet), Spec, one_of(SpecSet)) :-
@@ -106,34 +87,10 @@ merge_two_specs(one_of(Set), Spec, one_of(NewSet)) :-
     fail.
 
 
-:- begin_tests(merge_specs).
 
-test(same_spec) :-
-    merge_two_specs(integer, integer, X), !,
-    X == integer.
-
-test(incompatible_simple) :-
-    merge_two_specs(integer, atom, X), !,
-    list_to_ord_set([integer, atom], SpecSet),
-    X == one_of(SpecSet).
-
-test(incompatible_simple2) :-
-    Specs = [integer, compound(foo(integer))],
-    merge_two_specs(integer, compound(foo(integer)), X), !,
-    list_to_ord_set(Specs, SpecSet),
-    X == one_of(SpecSet).
-
-test(somewhat_compatible) :-
-    Specs = [compound(foo(integer)), compound(foo(atom))],
-    merge_two_specs(compound(foo(integer)), compound(foo(atom)), X), !,
-    list_to_ord_set(Specs, SpecSet),
-    X == compound(foo(one_of(SpecSet))).
-
-:- end_tests(merge_specs).
 
 
 infer_spec(DataList, PossibleSpec) :-
     maplist(possible_specs, DataList, AllPossibleSpecs),
     find_smallest_spec_subset(AllPossibleSpecs, SpecList),
     merge_specs(SpecList, PossibleSpec).
-
