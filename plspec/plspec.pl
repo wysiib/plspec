@@ -136,8 +136,8 @@ error_handler(plspec_default_error_handler).
 
 :- public plspec_default_error_handler/1.
 plspec_default_error_handler(X) :-
-  pretty_print_error(X),
-  throw(plspec_error).
+  pretty_print_error(X).%,
+  %throw(plspec_error).
 
 :- meta_predicate set_error_handler(1).
 set_error_handler(Pred) :-
@@ -205,13 +205,14 @@ plspec_some1([_|T], Goal) :-
   plspec_some1(T, Goal).
 
 :- public spec_matches/3.
-spec_matches([], true, []).
-spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
-  evaluate_spec_match(Spec, Arg, R),
-  (R == true
-    ->  spec_matches(ArgsT, Res, SpecT)
-     ;  Res = spec_not_matched(Spec, Arg, in(R))).
 
+spec_matches(Args,true,Specs) :-
+  spec_matches_inner(Args,Specs).
+
+spec_matches_inner([], []).
+spec_matches_inner([Arg|ArgsT], [Spec|SpecT]) :-
+  evaluate_spec_match(Spec, Arg, true),
+  spec_matches_inner(ArgsT, SpecT).
 
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-

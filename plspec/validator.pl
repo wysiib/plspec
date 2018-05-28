@@ -55,7 +55,7 @@ true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
 :- public any/2.
-any(X,Y) :- spec_predicate(X,DefSpec), call(DefSpec,Y).
+any(X,Y) :- X\== any(_), spec_predicate(X,DefSpec), call(DefSpec,Y).
 
 
 valid(Spec, Val) :-

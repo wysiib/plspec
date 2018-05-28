@@ -18,6 +18,7 @@
 
 expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
   Head =.. [Functor|Args],
+  log(debug, 'Expansion for ~w',[Head]),
   length(Args, Lenny),
   %% newargs: only relevant if head implements pattern matching:
   % consider foo(foo). then the call 'foo(bar)' would not violate the spec but only fail
@@ -27,9 +28,10 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
   NewBody = (% determine if at least one precondition is fulfilled
               (PreSpecs = []
                   -> true
-                  ;  (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs)
+                  ;  (plspec:plspec_some(spec_matches(NewArgs, R), PreSpecs),
+                     (R == true
                       -> true
-                      ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
+                      ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs)))),
               (InvariantSpecOrEmpty = [InvariantSpec]
                   -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,NewArgs)
                   ; true),
