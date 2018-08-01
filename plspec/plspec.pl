@@ -69,56 +69,46 @@ spec_post(Pred,PreSpec,PostSpec) :-
   assert(asserted_spec_post(Pred,PreSpec,PostSpec)),
   log(debug,'Asserted spec post for ~w.',[Pred]).
 
-:- meta_predicate defspec_pred(+, 1).
-defspec(SpecId, OtherSpec) :-
-  (spec_exists(SpecId, Existing)
-    %% we use variant in order to determine whether it is actually the same spec;
-    % for example, consider defspec(foo(X,Y), bar(X,Y)), defspec(foo(X,Y), bar(Y,X)).
-    % we do not want to unify X = Y but also notice these are not the same specs.
-    ->  (variant(spec(SpecId, Existing),spec(SpecId, indirection(OtherSpec)))
-          ->  log(info,'spec is overwritten with itself, proceeding~n',
-                  [SpecId])
-           ;  log(warning,'spec ~w already exists, will not be redefined~n',
-                  [SpecId]))
-     ;  assert(spec_indirection(SpecId, OtherSpec)),
-        log(info,'Spec ~w defined.',[SpecId])).
+check_if_spec_not_exists(SpecId, ToBeChecked) :-
+  validator:spec_exists(SpecId, Existing)
+    -> (variant(spec(SpecId, Existing), spec(SpecId, ToBeChecked))
+      ->  log(info,'spec is overwritten with itself, proceeding~n',
+              [SpecId]),
+              fail
+      ;  log(warning,'spec ~w already exists, will not be redefined~n',
+              [SpecId]),
+              fail),
+      fail
+      ; true.
 
 :- meta_predicate defspec_pred(+, 1).
-  defspec_pred(SpecId, Predicate) :-
-  (spec_exists(SpecId, Existing)
-    ->  (variant(spec(SpecId, Existing), spec(SpecId, predicate(Predicate)))
-          ->  log(info,'spec is overwritten with itself, proceeding~n',
-                  [SpecId])
-           ;  log(warning,'spec ~w already exists, will not be redefined~n',
-                  [SpecId]))
-     ;  assert(spec_predicate(SpecId, Predicate))).
+defspec(SpecId, OtherSpec) :-
+  check_if_spec_not_exists(SpecId,indirection(OtherSpec))
+  ->
+    assert(spec_indirection(SpecId, OtherSpec)),
+    log(info,'Spec ~w defined.',[SpecId]).
+
+:- meta_predicate defspec_pred(+, 1).
+defspec_pred(SpecId, Predicate) :-
+  check_if_spec_not_exists(SpecId, predicate(Predicate))
+  -> assert(spec_predicate(SpecId, Predicate)).
 
 :- meta_predicate defspec_pred_recursive(+, 3,3,4).
 defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
-  (spec_exists(SpecId, Existing)
-    ->  (variant(spec(SpecId, Existing),
-                 spec(SpecId, predicate_recursive(Predicate, MergePred,
-                                                  MergePredInvariant)))
-          -> log(info,'spec is overwritten with itself, proceeding~n',
-                  [SpecId])
-           ; log(warning,'spec ~w already exists, will not be redefined~n',
-                  [SpecId]))
-     ;  assert(spec_predicate_recursive(SpecId, Predicate, MergePred,
+  check_if_spec_not_exists(SpecId,
+                            predicate_recursive(Predicate, MergePred,
+                                                MergePredInvariant))
+  -> assert(spec_predicate_recursive(SpecId, Predicate, MergePred,
                                         MergePredInvariant)),
-      log(info, 'Recursive spec ~w defined.',[SpecId])).
+      log(info, 'Recursive spec ~w defined.',[SpecId]).
+
 :- meta_predicate defspec_connective(+, 3,3,4).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
-  (spec_exists(SpecId, Existing)
-    ->  (variant(spec(SpecId, Existing),
-                 spec(SpecId, connective(Predicate, MergePred,
-                                          MergePredInvariant)))
-          ->  log(warning,'spec is overwritten with itself, proceeding~n',
-                  [SpecId]))
-           ;  log(warning,'spec ~w already exists, will not be redefined~n',
-                  [SpecId])
-     ;  assert(spec_connective(SpecId, Predicate, MergePred,
+  check_if_spec_not_exists(SpecId,
+                          connective(Predicate, MergePred, MergePredInvariant))
+  ->  assert(spec_connective(SpecId, Predicate, MergePred,
                                 MergePredInvariant)),
-        log(info,'Connective spec ~w defined.')).
+        log(info,'Connective spec ~w defined.').
 
 
 :- dynamic check_predicate/1.
