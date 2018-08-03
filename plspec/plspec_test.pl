@@ -1,12 +1,12 @@
 :- module(plspec_test, []).
-:- use_module(plspec_checker).
+:- use_module(plspec_core).
 :- use_module(library(plunit)).
 :- enable_all_spec_checks.
 :- use_module('plspec_test.plspec').
 
-:- plspec:spec_pre(my_member/2,[any,[any]]).
-:- plspec:spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
-:- plspec:spec_post(my_member/2,[any,var],[any,[any]]).
+:- spec_pre(my_member/2,[any,[any]]).
+:- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
+:- spec_post(my_member/2,[any,var],[any,[any]]).
 my_member(E,[E|_]).
 my_member(E,[_|T]) :-
   my_member(E,T).
@@ -41,9 +41,9 @@ test(not_conform, [throws(_)]) :-
 
 
 %% multiple pres
-:- plspec:spec_pre(my_compound_foo/1, [compound(foo(int))]).
-:- plspec:spec_pre(my_compound_foo/1, [compound(foo(atomic))]).
-:- plspec:spec_post(my_compound_foo/1, [compound(foo(ground))], [compound(foo(ground))]).
+:- spec_pre(my_compound_foo/1, [compound(foo(int))]).
+:- spec_pre(my_compound_foo/1, [compound(foo(atomic))]).
+:- spec_post(my_compound_foo/1, [compound(foo(ground))], [compound(foo(ground))]).
 my_compound_foo(foo(_)).
 
 
@@ -53,10 +53,10 @@ my_compound_foo(foo(_)).
 test(nonconform_call, [throws(_)]) :-
   my_compound_foo(foo(_)).
 
-test(conform_call1) :-
+test(conform_call1, [nondet]) :-
   my_compound_foo(foo(1)).
 
-test(conform_call2) :-
+test(conform_call2, [nondet]) :-
   my_compound_foo(foo(bar)).
 
 test(not_conform, [throws(_)]) :-
@@ -65,8 +65,8 @@ test(not_conform, [throws(_)]) :-
 :- end_tests(my_compound_foo).
 
 
-:- plspec:spec_pre(my_tuple_with_incorrect_spec/1, [tuple([atomic, atomic])]).
-:- plspec:spec_post(my_tuple_with_incorrect_spec/1, [tuple([var, var])], [tuple([atomic, atomic])]).
+:- spec_pre(my_tuple_with_incorrect_spec/1, [tuple([atomic, atomic])]).
+:- spec_post(my_tuple_with_incorrect_spec/1, [tuple([var, var])], [tuple([atomic, atomic])]).
 my_tuple_with_incorrect_spec([X, X]).
 
 
@@ -90,7 +90,7 @@ test(nonconform_both_var, [throws(_)]) :-
 :- end_tests(my_tuple).
 
 
-:- plspec:spec_pre(atom_member/2, [atomic, [atomic]]).
+:- spec_pre(atom_member/2, [atomic, [atomic]]).
 atom_member(X, [X|_]) :- !.
 atom_member(X, [_|T]) :-
   atom_member(X, T).
@@ -115,7 +115,7 @@ test(not_conform3, [throws(_)]) :-
 :- end_tests(atom_member).
 
 
-:- plspec:spec_pre(my_atomic/1, [one_of([atomic, [atomic]])]).
+:- spec_pre(my_atomic/1, [one_of([atomic, [atomic]])]).
 my_atomic([_|_]) :- !, fail.
 my_atomic(_).
 
@@ -158,7 +158,7 @@ if_my_atomic_then_atom(X) :-
   (my_atomic(X) -> atom(X)).
 
 
-:- plspec:spec_pre(my_or_test/1, [one_of([ground, ground])]).
+:- spec_pre(my_or_test/1, [one_of([ground, ground])]).
 my_or_test(_).
 
 :- begin_tests(my_or_test, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
@@ -172,7 +172,7 @@ test(nonconform, [throws(_)]) :-
 :- end_tests(my_or_test).
 
 
-:- plspec:spec_pre(my_and_test/1, [and([atomic, ground])]).
+:- spec_pre(my_and_test/1, [and([atomic, ground])]).
 my_and_test(_).
 
 :- begin_tests(my_and_test, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
@@ -189,8 +189,8 @@ test(nonconform2, [throws(_)]) :-
 :- end_tests(my_and_test).
 
 
-:- plspec:spec_pre(invariant_violator/1, [any]).
-:- plspec:spec_invariant(invariant_violator/1, [test:atomic]).
+:- spec_pre(invariant_violator/1, [any]).
+:- spec_invariant(invariant_violator/1, [atomic]).
 invariant_violator(X) :-
   X = [1], X == [2]. % fail in a more sophisticated way
 invariant_violator(a).
@@ -208,8 +208,8 @@ test(nonconform, [throws(_)]) :-
 
 :- end_tests(invariant_violator_test).
 
-:- plspec:spec_pre(partial_instantiator/1, [[any]]).
-:- plspec:spec_invariant(partial_instantiator/1, [[int]]).
+:- spec_pre(partial_instantiator/1, [[any]]).
+:- spec_invariant(partial_instantiator/1, [[int]]).
 partial_instantiator([_,_]).
 partial_instantiator([1,_]).
 partial_instantiator([_,2]).
