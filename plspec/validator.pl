@@ -17,7 +17,7 @@
 % Definition of spec predicates
 spec_predicate(atomic, atomic).
 spec_predicate(atom, atom).
-spec_predicate(atom(X), atom(X)). %TODO: why is this needed?
+spec_predicate(atom(X), atom(X)). %for a concrete atom
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(float, float).
@@ -54,10 +54,15 @@ true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
 
+valid(Spec, Val) :-
+  ground(Spec),
+  evaluate_spec_match(Spec, Val, Success),
+  Success == true, !.
 
 valid(Spec, Val) :-
-    evaluate_spec_match(Spec, Val, Success),
-    Success == true.
+  \+ ground(Spec),
+  evaluate_spec_match(Spec, Val, Success),
+  Success == true.
 
 list_valid([],[]) :- !.
 list_valid([Spec|Specs],[Val|Vals]) :-

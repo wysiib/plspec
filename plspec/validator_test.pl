@@ -91,4 +91,11 @@ test(and) :-
   valid(and([integer, ground]), 3),
   \+ valid(and([integer, var]), 3).
 
+test(valid_det) :-
+  valid(int,3),
+  valid(atomic,a).
+
+test(valid_ground, [nondet]) :-
+  valid(_,3).
+
 :- end_tests(valid).
