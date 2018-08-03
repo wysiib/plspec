@@ -3,7 +3,7 @@
           defspec/2, defspec_pred/2, defspec_pred_recursive/4,
           defspec_connective/4,
 
-          setup_uber_check/4, which_posts/6, check_posts/4,
+          setup_uber_check/4, which_posts/8, check_posts/4,
           plspec_some/3, error_not_matching_any_pre/3,
           enable_spec_check/1, enable_all_spec_checks/0,
           set_error_handler/1,
@@ -199,18 +199,18 @@ reason(T, Location, V, Reason) :-
 
 
 %% non-coroutine non-magic
-which_posts([],[],[],_,[],[]).
-which_posts([Pre|Pres],[PreType|PreTypes],[Post|Posts],Args,[Pre|PreT],[Post|T]) :-
-  maplist(valid,Pre,PreType,Args), !,
-  which_posts(Pres,PreTypes,Posts,Args,PreT, T).
-which_posts([_|Pres],[_|PreTypes],[_|Posts],Args,PreT,T) :-
-  which_posts(Pres,PreTypes,Posts,Args,PreT,T).
+which_posts([],[],[],[],_,[],[],[]).
+which_posts([Pre|Pres],[PreType|PreTypes],[Post|Posts],[PostType|PostTypes],Args,[Pre|PreT],[Post|T],[PostType|Z]) :-
+  maplist(valid(PreType),Pre,Args), !,
+  which_posts(Pres,PreTypes,Posts,PostTypes,Args,PreT, T, Z).
+which_posts([_|Pres],[_|PreTypes],[_|Posts],[_|PostTypes],Args,PreT,T,Z) :-
+  which_posts(Pres,PreTypes,Posts,PostTypes,Args,PreT,T,Z).
 
-check_posts([], [], [], []).
-check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT], [PostType|PostTypes]) :-
+check_posts([], [], [], _).
+check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT], PostType) :-
   evaluate_spec_match(Post, PostType, Arg, Res),
   (Res == true
-    ->  check_posts(ArgT, PreT, PostT, PostTypes)
+    ->  check_posts(ArgT, PreT, PostT, PostType)
      ;  error_handler(X),
         call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
 

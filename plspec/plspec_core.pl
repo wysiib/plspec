@@ -40,9 +40,9 @@ PrePostSpecs,PrePostSpecTypes, PostSpecs, PostSpecTypes, NewHead,NewBody) :-
                % unify with pattern matching of head
               NewArgs = Args,
               % gather all matching postconditions
-              plspec:which_posts(PrePostSpecs,PrePostSpecTypes,PostSpecs,Args,ValidPrePostSpecs,PostsToCheck),
+              plspec:which_posts(PrePostSpecs,PrePostSpecTypes,PostSpecs,PostSpecTypes,Args,ValidPrePostSpecs,PostsToCheck,PostTypesToCheck),
               Goal,
-              lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck,PostSpecTypes)).
+              lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck,PostTypesToCheck)).
 
 
 create_list(_,[],0) :- !.

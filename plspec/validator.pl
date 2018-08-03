@@ -56,10 +56,17 @@ true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
 
-valid(Spec, Type, Val) :-
+valid(Type, Spec, Val) :-
+  ground(Spec),
+  evaluate_spec_match(Spec, Type, Val, Success),
+  Success == true, !.
+
+valid(Type, Spec, Val) :-
   \+ ground(Spec),
   evaluate_spec_match(Spec, Type, Val, Success),
   Success == true.
+
+
 
 valid(Spec, Val) :-
   ground(Spec),

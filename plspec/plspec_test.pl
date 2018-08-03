@@ -35,7 +35,7 @@ test(valid_my_member_int, [nondet]) :-
 test(invalid_my_member_int, [throws(_)]) :-
   my_member_int(a,[1,2,3]).
 
-test(valid_my_member_specific) :-
+test(valid_my_member_specific, [nondet]) :-
   my_member_specific(1,[1,2,3]),
   \+ my_member_specific(a,[b,c]).
 
