@@ -36,7 +36,8 @@ asserted_spec_invariant(Pred, Spec) :-
 check_ground(Pred, Spec, SpecType) :-
   (ground(Spec)
     ->  true
-     ;  log(error,'~w should be ground; got ~w in ~w',
+     ;  log(info,'~w is not ground; got ~w in ~w. It is handled as a specific,
+            but unknown spec.',
           [SpecType, Spec, Pred])).
 
 check_arity(Pred, Spec, SpecType, Arity) :-
