@@ -12,7 +12,7 @@ pretty_print_error(fail(prespec_violated(specs(PreSpecs),
                                          values(Vals),
                                          location(Functor)))) :-
     log(error, 'No precondition was matched in ~w',[Functor]),
-    log(error, 'Specified preconditions ware: ~w', [PreSpecs]),
+    log(error, 'Specified preconditions were: ~w', [PreSpecs]),
     log(error, 'However, none of these matched by: ~w', [Vals]).
 pretty_print_error(fail(spec_violated(spec(T),
                                       value(V),

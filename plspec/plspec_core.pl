@@ -32,7 +32,7 @@ PrePostSpecs,PrePostSpecTypes, PostSpecs, PostSpecTypes, NewHead,NewBody) :-
                   -> true
                   ;  (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs, PreSpecTypes)
                       -> true
-                      ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
+                      ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs),!)),
               (InvariantSpecOrEmpty = [InvariantSpec]
                   ->InvSpecTypes = [InvSpecType],
                     lists:maplist(plspec:setup_uber_check(Functor/Lenny,InvSpecType),InvariantSpec,NewArgs)

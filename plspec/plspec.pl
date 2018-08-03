@@ -149,8 +149,8 @@ error_handler(plspec_default_error_handler).
 
 :- public plspec_default_error_handler/1.
 plspec_default_error_handler(X) :-
-  pretty_print_error(X),
-  throw(plspec_error).
+  pretty_print_error(X), !.
+  %throw(plspec_error).
 
 :- meta_predicate set_error_handler(1).
 set_error_handler(Pred) :-
