@@ -157,12 +157,12 @@ set_error_handler(Pred) :-
   assert(error_handler(Pred)).
 
 %% check coroutine magic
-setup_uber_check(Location,Spec,any,Val) :-
+setup_uber_check(Location,any,Spec,Val) :-
   log(debug,'setup_uber_check'),
   setup_check(Location,Res,Spec,Val,any),
   freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
 
-setup_uber_check(Location,Spec,def,Val) :-
+setup_uber_check(Location,def,Spec,Val) :-
   log(debug,'setup_uber_check'),
   setup_check(Location,Res,Spec,Val,def),
   freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).

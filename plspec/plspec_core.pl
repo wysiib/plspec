@@ -35,7 +35,7 @@ PrePostSpecs,PrePostSpecTypes, PostSpecs, PostSpecTypes, NewHead,NewBody) :-
                       ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
               (InvariantSpecOrEmpty = [InvariantSpec]
                   ->InvSpecTypes = [InvSpecType],
-                    lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,InvSpecType,NewArgs)
+                    lists:maplist(plspec:setup_uber_check(Functor/Lenny,InvSpecType),InvariantSpec,NewArgs)
                   ; true),
                % unify with pattern matching of head
               NewArgs = Args,

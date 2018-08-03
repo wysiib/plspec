@@ -13,10 +13,10 @@ test(spec_predicate) :-
   spec_predicate(integer, integer),
   spec_predicate(number, number),
   spec_predicate(float, float),
-  spec_predicate(var, var),
-  spec_predicate(ground, ground),
-  spec_predicate(nonvar, nonvar),
-  spec_predicate(any, true).
+  spec_basic(var, var),
+  spec_basic(ground, ground),
+  spec_basic(nonvar, nonvar),
+  spec_basic(any, true).
 
 test(spec_exists_integer) :-
   spec_exists(integer).
