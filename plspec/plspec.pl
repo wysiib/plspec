@@ -3,8 +3,8 @@
           defspec/2, defspec_pred/2, defspec_pred_recursive/4,
           defspec_connective/4,
 
-          setup_uber_check/3, which_posts/5, check_posts/3,
-          plspec_some/2, error_not_matching_any_pre/3,
+          setup_uber_check/4, which_posts/6, check_posts/4,
+          plspec_some/3, error_not_matching_any_pre/3,
           enable_spec_check/1, enable_all_spec_checks/0,
           set_error_handler/1,
           spec_and/4,
@@ -49,17 +49,21 @@ spec_pre(Pred,PreSpec) :-
   (Pred = _:_/Arity),
   check_arity(Pred, PreSpec, 'A pre spec', Arity),
   (ground(PreSpec)
-    -> assert(asserted_spec_pre(Pred,PreSpec,any))
-    ; assert(asserted_spec_pre(Pred,PreSpec,def))),
+    -> assert(asserted_spec_pre(Pred,PreSpec,def))
+    ; assert(asserted_spec_pre(Pred,PreSpec,any))),
   log(debug,'Asserted spec pre for ~w.',[Pred]).
 
 spec_invariant(Pred, InvariantSpec) :-
   check_ground(Pred, InvariantSpec, 'invariant specs'),
   Pred = _:_/Arity,
   check_arity(Pred, InvariantSpec, 'An invariant spec', Arity),
-  (maplist(named_spec, InvariantSpec, Names, Specs)
-    ->  assert(asserted_spec_invariant(Pred, Names, Specs, def))
-     ;  assert(asserted_spec_invariant(Pred, InvariantSpec, def))),
+  (ground(InvariantSpec)
+    ->   (maplist(named_spec, InvariantSpec, Names, Specs)
+        ->  assert(asserted_spec_invariant(Pred, Names, Specs, def))
+         ;  assert(asserted_spec_invariant(Pred, InvariantSpec, def)))
+    ;   (maplist(named_spec, InvariantSpec, Names, Specs)
+        ->  assert(asserted_spec_invariant(Pred, Names, Specs, any))
+         ;  assert(asserted_spec_invariant(Pred, InvariantSpec, any)))),
   log(debug,'Assertedc spec invariant for ~w.',[Pred]).
 
 spec_post(Pred,PreSpec,PostSpec) :-
@@ -68,7 +72,13 @@ spec_post(Pred,PreSpec,PostSpec) :-
   Pred = _:_/Arity,
   check_arity(Pred, PreSpec, 'A post spec (precondition)', Arity),
   check_arity(Pred, PostSpec, 'A post spec (postcondition)', Arity),
-  assert(asserted_spec_post(Pred,PreSpec,PostSpec,def,def)),
+  (ground(PreSpec)
+    -> (ground(PostSpec)
+        -> assert(asserted_spec_post(Pred,PreSpec,PostSpec,def,def))
+        ; assert(asserted_spec_post(Pred,PreSpec,PostSpec,def,any)))
+    ;  (ground(PostSpec)
+        -> assert(asserted_spec_post(Pred,PreSpec,PostSpec,any,def))
+        ; assert(asserted_spec_post(Pred,PreSpec,PostSpec,any,any)))),
   log(debug,'Asserted spec post for ~w.',[Pred]).
 
 :- meta_predicate defspec_pred(+, 1).
@@ -147,12 +157,12 @@ set_error_handler(Pred) :-
   assert(error_handler(Pred)).
 
 %% check coroutine magic
-setup_uber_check(Location,any(Spec),Val) :- !,
+setup_uber_check(Location,Spec,any,Val) :-
   log(debug,'setup_uber_check'),
-  setup_check(Location,Res,Spec,Val,type:var),
+  setup_check(Location,Res,Spec,Val,any),
   freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
 
-setup_uber_check(Location,Spec,Val) :-
+setup_uber_check(Location,Spec,def,Val) :-
   log(debug,'setup_uber_check'),
   setup_check(Location,Res,Spec,Val,def),
   freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
@@ -160,9 +170,9 @@ setup_uber_check(Location,Spec,Val) :-
 setup_check(Location,Res,Spec,Val,Type) :-
   setup_check_aux(Spec,Location,Val,Res,Type).
 
-  setup_check_aux(Spec, Location, Val, Res, def) :-
-    spec_basic(Spec, Pred), !,
-    freeze(Val, (call(Pred, Val) -> true ; reason(Spec, Location, Val, Res))).
+setup_check_aux(Spec, Location, Val, Res, def) :-
+  spec_basic(Spec, Pred), !,
+  freeze(Val, (call(Pred, Val) -> true ; reason(Spec, Location, Val, Res))).
 setup_check_aux(Spec, Location, Val, Res, _) :-
   spec_predicate(Spec, Pred), !,
   freeze(Val, (call(Pred, Val) -> true ; reason(Spec, Location, Val, Res))).
@@ -189,37 +199,37 @@ reason(T, Location, V, Reason) :-
 
 
 %% non-coroutine non-magic
-which_posts([],[],_,[],[]).
-which_posts([Pre|Pres],[Post|Posts],Args,[Pre|PreT],[Post|T]) :-
-  maplist(valid,Pre,Args), !,
-  which_posts(Pres,Posts,Args,PreT, T).
-which_posts([_|Pres],[_|Posts],Args,PreT,T) :-
-  which_posts(Pres,Posts,Args,PreT,T).
+which_posts([],[],[],_,[],[]).
+which_posts([Pre|Pres],[PreType|PreTypes],[Post|Posts],Args,[Pre|PreT],[Post|T]) :-
+  maplist(valid,Pre,PreType,Args), !,
+  which_posts(Pres,PreTypes,Posts,Args,PreT, T).
+which_posts([_|Pres],[_|PreTypes],[_|Posts],Args,PreT,T) :-
+  which_posts(Pres,PreTypes,Posts,Args,PreT,T).
 
-check_posts([], [], []).
-check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT]) :-
-  evaluate_spec_match(Post, Arg, Res),
+check_posts([], [], [], []).
+check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT], [PostType|PostTypes]) :-
+  evaluate_spec_match(Post, PostType, Arg, Res),
   (Res == true
-    ->  check_posts(ArgT, PreT, PostT)
+    ->  check_posts(ArgT, PreT, PostT, PostTypes)
      ;  error_handler(X),
         call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
 
 %% term expansion
 :- meta_predicate plspec_some(1, +).
-plspec_some(Goal, List) :-
-  plspec_some1(List, Goal).
-plspec_some1([], _) :- fail.
-plspec_some1([H|_], Goal) :-
-  call(Goal,H), !.
-plspec_some1([_|T], Goal) :-
-  plspec_some1(T, Goal).
+plspec_some(Goal, List, List2) :-
+  plspec_some1(List, List2, Goal).
+plspec_some1([],[], _) :- fail.
+plspec_some1([H|_], [G|_], Goal) :-
+  call(Goal,H,G), !.
+plspec_some1([_|T], [_|S], Goal) :-
+  plspec_some1(T, S, Goal).
 
-:- public spec_matches/3. %THIS SEEMS NOT USED - TO DO: investigate
-spec_matches([], true, []).
-spec_matches([Arg|ArgsT], Res, [Spec|SpecT]) :-
-  evaluate_spec_match(Spec, Arg, R),
+:- public spec_matches/4. %THIS SEEMS NOT USED - TO DO: investigate
+spec_matches([], true, [], _).
+spec_matches([Arg|ArgsT], Res, [Spec|SpecT], Type) :-
+  evaluate_spec_match(Spec, Type, Arg, R),
   (R == true
-    ->  spec_matches(ArgsT, Res, SpecT)
+    ->  spec_matches(ArgsT, Res, SpecT, Type)
      ;  Res = spec_not_matched(Spec, Arg, in(R))).
 
 
@@ -242,7 +252,7 @@ and_invariant(Specs, Vals, Location, R) :-
 or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
   freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason) ; true)).
 or_invariant([any(H)|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :- !,
-  setup_check(Location, ResOption, H, V, type:var),
+  setup_check(Location, ResOption, H, V, any),
   freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
   or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
 or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-

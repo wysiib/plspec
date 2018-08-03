@@ -1,10 +1,11 @@
 :- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, spec_basic/2,
                       spec_exists/1, spec_exists/2,
                       true/1, atom/2,
-                      valid/2,
-                      evaluate_spec_match/3, evaluate_spec_match_aux/3,
+                      valid/
+                      2, valid/3,
+                      evaluate_spec_match/4,
                       list/4, compound/4, tuple/4,
-                      spec_and/4, and/3, or/3
+                      spec_and/4, and/4, or/4
                      ]).
 
 :- use_module(library(terms), [variant/2]).
@@ -55,14 +56,19 @@ true(_).
 :- public atom/2.
 atom(X, Y) :- atom(Y), X = Y.
 
+valid(Spec, Type, Val) :-
+  \+ ground(Spec),
+  evaluate_spec_match(Spec, Type, Val, Success),
+  Success == true.
+
 valid(Spec, Val) :-
   ground(Spec),
-  evaluate_spec_match(Spec, Val, Success),
+  evaluate_spec_match(Spec, def, Val, Success),
   Success == true, !.
 
 valid(Spec, Val) :-
   \+ ground(Spec),
-  evaluate_spec_match(Spec, Val, Success),
+  evaluate_spec_match(Spec, def, Val, Success),
   Success == true.
 
 list_valid([],[]) :- !.
@@ -73,21 +79,21 @@ list_valid([Spec|Specs],[Val|Vals]) :-
 
 % evaluate_spec_match
 %% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
-evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
+evaluate_spec_match(Spec, _Type, _, fail(spec_not_found(spec(Spec)))) :-
   nonvar(Spec),
   \+ spec_exists(Spec), !,
   log(warning,'spec ~w not found~n', [Spec]).
 
-evaluate_spec_match(Spec, Val, Res) :-
+evaluate_spec_match(Spec, Type, Val, Res) :-
     %spec_exists(Spec),
-    evaluate_spec_match_aux(Spec, Val, Res).
+    evaluate_spec_match_aux(Spec, Type,Val, Res).
 
 %evaluate_spec_match_aux matches the value Val against the existing spec Spec.
 % There are different kinds of spec predicates:
 
 
 % a basic spec %TODO: find better name
-evaluate_spec_match_aux(Spec, Val, Res) :-
+evaluate_spec_match_aux(Spec, def, Val, Res) :-
     spec_basic(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
@@ -99,7 +105,7 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
       ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 % a normal spec predicate
-evaluate_spec_match_aux(Spec, Val, Res) :-
+evaluate_spec_match_aux(Spec, _Type, Val, Res) :-
     spec_predicate(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
@@ -111,28 +117,28 @@ evaluate_spec_match_aux(Spec, Val, Res) :-
       ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 % a recursive spec
-evaluate_spec_match_aux(Spec, Val, Res) :-
+evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
-     -> call(MergePred, NewSpecs, NewVals, Res)
+     -> call(MergePred, NewSpecs, Type, NewVals, Res)
      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 % a connective spec
-evaluate_spec_match_aux(Spec, Val, Res) :-
+evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
-     -> call(MergePred, NewSpecs, NewVals, Res)
+     -> call(MergePred, NewSpecs, Type, NewVals, Res)
      ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
     (copy_term(Val, Valii), variant(Valii, Vali) -> true ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 %spec was an alias for another spec
-evaluate_spec_match_aux(Spec, Val, Res) :-
+evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     spec_indirection(Spec, NewSpec),
-    evaluate_spec_match(NewSpec, Val, Res).
+    evaluate_spec_match(NewSpec, Type, Val, Res).
 
 % built-in recursive specs
 list(Spec, Val, NewSpecs, NewVals) :-
@@ -148,6 +154,8 @@ list1(L, Spec, [Spec|ST], [H|VT]) :-
 list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
+
+
 
 
 :- public compound/4.
@@ -170,20 +178,20 @@ spec_and(SpecList, Var, SpecList, VarRepeated) :-
     length(VarRepeated,L),
     maplist(=(Var), VarRepeated).
 
-:- public and/3.
-and([], [], true).
-and([S|Specs], [V|Vals], Res) :-
-    evaluate_spec_match(S, V, X),
+:- public and/4.
+and([], _, [], true).
+and([S|Specs], Type, [V|Vals], Res) :-
+    evaluate_spec_match(S, Type, V, X),
     (X == true
-     -> and(Specs, Vals, Res)
+     -> and(Specs, Type, Vals, Res)
      ; Res = fail(spec_not_matched(spec(S), value(V)))).
 
-:- public or/3.
-or(Specs, Vals, true) :-
-    or2(Specs, Vals), !.
+:- public or/4.
+or(Specs, Type, Vals, true) :-
+    or2(Specs, Type, Vals), !.
 or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
 
-or2([HSpec|TSpec], [HVal|TVal]) :-
-    (evaluate_spec_match(HSpec, HVal, true)
+or2([HSpec|TSpec], Type, [HVal|TVal]) :-
+    (evaluate_spec_match(HSpec, Type, HVal, true)
      -> true
-     ;  or2(TSpec, TVal)).
+     ;  or2(TSpec, Type, TVal)).

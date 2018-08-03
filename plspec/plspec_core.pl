@@ -17,7 +17,8 @@
 :- use_module(validator).
 :- use_module(logger).
 
-expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead,NewBody) :-
+expansion(Head,Goal,PreSpecs,PreSpecTypes,InvariantSpecOrEmpty,InvSpecTypes,
+PrePostSpecs,PrePostSpecTypes, PostSpecs, PostSpecTypes, NewHead,NewBody) :-
   Head =.. [Functor|Args],
   length(Args, Lenny),
   %% newargs: only relevant if head implements pattern matching:
@@ -25,21 +26,29 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
   % thus, we insert a fresh variable and check the unification with the argument term later on
   length(NewArgs, Lenny),
   NewHead =.. [Functor|NewArgs],
+
   NewBody = (% determine if at least one precondition is fulfilled
               (PreSpecs = []
                   -> true
-                  ;  (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs)
+                  ;  (plspec:plspec_some(spec_matches(NewArgs, true), PreSpecs, PreSpecTypes)
                       -> true
                       ; plspec:error_not_matching_any_pre(Functor/Lenny, NewArgs, PreSpecs))),
               (InvariantSpecOrEmpty = [InvariantSpec]
-                  -> lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,NewArgs)
+                  ->InvSpecTypes = [InvSpecType],
+                    lists:maplist(plspec:setup_uber_check(Functor/Lenny),InvariantSpec,InvSpecType,NewArgs)
                   ; true),
                % unify with pattern matching of head
               NewArgs = Args,
               % gather all matching postconditions
-              plspec:which_posts(PrePostSpecs,PostSpecs,Args,ValidPrePostSpecs,PostsToCheck),
+              plspec:which_posts(PrePostSpecs,PrePostSpecTypes,PostSpecs,Args,ValidPrePostSpecs,PostsToCheck),
               Goal,
-              lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck)).
+              lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck,PostSpecTypes)).
+
+
+create_list(_,[],0) :- !.
+create_list(X,[X|Rest],Length) :-
+  L2 is Length-1,
+  create_list(X,Rest,L2).
 
 should_expand(A, F, Module, Arity) :-
   functor(A,F,Arity),
@@ -52,11 +61,16 @@ should_expand(A, F, Module, Arity) :-
 
 expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
   should_expand(A, F, Module, Arity), !,
-  findall(PreSpec, plspec:asserted_spec_pre(Module:F/Arity,PreSpec, _TypePre), PreSpecs),
-  findall(InvSpec, plspec:asserted_spec_invariant(Module:F/Arity,InvSpec, _TypeInv),InvariantSpecOrEmpty),
-  findall(PreSpec2,plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_,_TypePre2,_),PrePostSpecs),
-  findall(PostSpec,plspec:asserted_spec_post(Module:F/Arity,_,PostSpec,_,_TypePost),PostSpecs),
-  expansion(A,B,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NA,NB).
+  findall(PreSpec, plspec:asserted_spec_pre(Module:F/Arity,PreSpec, _), PreSpecs),
+  findall(InvSpec, plspec:asserted_spec_invariant(Module:F/Arity,InvSpec, _),InvariantSpecOrEmpty),
+  findall(PreSpec2,plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_,_,_),PrePostSpecs),
+  findall(PostSpec,plspec:asserted_spec_post(Module:F/Arity,_,PostSpec,_,_),PostSpecs),
+  findall(PreSpecType, plspec:asserted_spec_pre(Module:F/Arity,PreSpec, PreSpecType), PreSpecTypes),
+  findall(InvSpecType, plspec:asserted_spec_invariant(Module:F/Arity,InvSpec, InvSpecType),InvSpecTypes),
+  findall(PreSpec2Type,plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_,PreSpec2Type,_),PrePostSpecTypes),
+  findall(PostSpecType,plspec:asserted_spec_post(Module:F/Arity,_,PostSpec,_,PostSpecType),PostSpecTypes),
+  expansion(A,B,PreSpecs,PreSpecTypes,InvariantSpecOrEmpty,InvSpecTypes,
+          PrePostSpecs,PrePostSpecTypes, PostSpecs, PostSpecTypes, NA,NB).
 
 do_expand(':-'(spec_pre(Predicate/Arity, Spec)),
           Module,
