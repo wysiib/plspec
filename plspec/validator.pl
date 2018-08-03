@@ -8,6 +8,7 @@
                      ]).
 
 :- use_module(library(terms), [variant/2]).
+:- use_module(library(lists)).
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 :- multifile spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
