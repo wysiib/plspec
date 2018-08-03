@@ -1,4 +1,4 @@
-:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4,
+:- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, spec_basic/2,
                       spec_exists/1, spec_exists/2,
                       true/1, atom/2,
                       valid/2,
@@ -12,7 +12,10 @@
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 :- multifile spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
-
+spec_basic(var, var).
+spec_basic(ground, ground).
+spec_basic(nonvar, nonvar).
+spec_basic(any, true).
 
 % Definition of spec predicates
 spec_predicate(atomic, atomic).
@@ -21,10 +24,6 @@ spec_predicate(atom(X), atom(X)). %for a concrete atom
 spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(float, float).
-spec_predicate(var, var).
-spec_predicate(ground, ground).
-spec_predicate(nonvar, nonvar).
-spec_predicate(any, true).
 
 
 
@@ -40,7 +39,9 @@ spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 %When does a predicate exists:
+
 spec_exists(X) :- spec_indirection(X, _).
+spec_exists(X) :- spec_basic(X, _).
 spec_exists(X) :- spec_predicate(X, _).
 spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
 spec_exists(X) :- spec_connective(X, _, _, _).
@@ -73,15 +74,29 @@ list_valid([Spec|Specs],[Val|Vals]) :-
 % evaluate_spec_match
 %% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
 evaluate_spec_match(Spec, _, fail(spec_not_found(spec(Spec)))) :-
-    nonvar(Spec),
-\+ spec_exists(Spec), !,
-log(warning,'spec ~w not found~n', [Spec]).
+  nonvar(Spec),
+  \+ spec_exists(Spec), !,
+  log(warning,'spec ~w not found~n', [Spec]).
+
 evaluate_spec_match(Spec, Val, Res) :-
     %spec_exists(Spec),
     evaluate_spec_match_aux(Spec, Val, Res).
 
 %evaluate_spec_match_aux matches the value Val against the existing spec Spec.
 % There are different kinds of spec predicates:
+
+
+% a basic spec %TODO: find better name
+evaluate_spec_match_aux(Spec, Val, Res) :-
+    spec_basic(Spec, Predicate),
+    %% HACK: copy_term does weird things to co-routines
+    copy_term(Val, Vali),
+    (call(Predicate, Val)
+     -> Res = true
+     ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
+    (copy_term(Val, Valii), variant(Valii, Vali)
+      -> true
+      ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 % a normal spec predicate
 evaluate_spec_match_aux(Spec, Val, Res) :-

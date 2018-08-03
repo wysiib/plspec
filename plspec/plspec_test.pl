@@ -11,9 +11,35 @@ my_member(E,[E|_]).
 my_member(E,[_|T]) :-
   my_member(E,T).
 
+
+:- spec_pre(my_member_int/2,[int,[int]]).
+my_member_int(E,[E|_]).
+my_member_int(E,[_|T]) :-
+  my_member_int(E,T).
+
+
+:- spec_pre(my_member_specific/2,[X,list(X)]).
+my_member_specific(E,[E|_]).
+my_member_specific(E,[_|T]) :-
+  my_member_specific(E,T).
+
 foo(A,B) :-
   my_member(A,B).
 
+
+:- begin_tests(specific_any, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
+test(valid_my_member_int, [nondet]) :-
+  my_member_int(1,[1,2,3]),
+  \+ my_member_int(1,[4,5]).
+
+test(invalid_my_member_int, [throws(_)]) :-
+  my_member_int(a,[1,2,3]).
+
+test(valid_my_member_specific) :-
+  my_member_specific(1,[1,2,3]),
+  \+ my_member_specific(a,[b,c]).
+
+:- end_tests(specific_any).
 
 :- begin_tests(my_member_spec, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 

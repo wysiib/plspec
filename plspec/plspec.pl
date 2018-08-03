@@ -10,8 +10,8 @@
           spec_and/4,
           list/4,
           valid/2,
-          asserted_spec_pre/2, asserted_spec_invariant/2,
-          asserted_spec_post/3,
+          asserted_spec_pre/3, asserted_spec_invariant/3,
+          asserted_spec_invariant/4, asserted_spec_post/5,
           check_predicate/1 % called by term expander
          ]).
 
@@ -22,8 +22,8 @@
 :- use_module(library(lists)).
 :- use_module(library(terms), [variant/2]).
 
-:- dynamic asserted_spec_pre/2, asserted_spec_invariant/2,
-asserted_spec_invariant/3, asserted_spec_post/3.
+:- dynamic asserted_spec_pre/3, asserted_spec_invariant/3,
+asserted_spec_invariant/4, asserted_spec_post/5.
 
 %% set up facts
 
@@ -37,8 +37,7 @@ check_ground(Pred, Spec, SpecType) :-
   (ground(Spec)
     ->  true
      ;  log(error,'~w should be ground; got ~w in ~w',
-          [SpecType, Spec, Pred]),
-        fail).
+          [SpecType, Spec, Pred])).
 
 check_arity(Pred, Spec, SpecType, Arity) :-
   (length(Spec, Arity)
@@ -49,7 +48,9 @@ spec_pre(Pred,PreSpec) :-
   check_ground(Pred, PreSpec, 'pre specs'),
   (Pred = _:_/Arity),
   check_arity(Pred, PreSpec, 'A pre spec', Arity),
-  assert(asserted_spec_pre(Pred,PreSpec)),
+  (ground(PreSpec)
+    -> assert(asserted_spec_pre(Pred,PreSpec,any))
+    ; assert(asserted_spec_pre(Pred,PreSpec,def))),
   log(debug,'Asserted spec pre for ~w.',[Pred]).
 
 spec_invariant(Pred, InvariantSpec) :-
@@ -57,8 +58,8 @@ spec_invariant(Pred, InvariantSpec) :-
   Pred = _:_/Arity,
   check_arity(Pred, InvariantSpec, 'An invariant spec', Arity),
   (maplist(named_spec, InvariantSpec, Names, Specs)
-    ->  assert(asserted_spec_invariant(Pred, Names, Specs))
-     ;  assert(asserted_spec_invariant(Pred, InvariantSpec))),
+    ->  assert(asserted_spec_invariant(Pred, Names, Specs, def))
+     ;  assert(asserted_spec_invariant(Pred, InvariantSpec, def))),
   log(debug,'Assertedc spec invariant for ~w.',[Pred]).
 
 spec_post(Pred,PreSpec,PostSpec) :-
@@ -67,7 +68,7 @@ spec_post(Pred,PreSpec,PostSpec) :-
   Pred = _:_/Arity,
   check_arity(Pred, PreSpec, 'A post spec (precondition)', Arity),
   check_arity(Pred, PostSpec, 'A post spec (postcondition)', Arity),
-  assert(asserted_spec_post(Pred,PreSpec,PostSpec)),
+  assert(asserted_spec_post(Pred,PreSpec,PostSpec,def,def)),
   log(debug,'Asserted spec post for ~w.',[Pred]).
 
 :- meta_predicate defspec_pred(+, 1).
@@ -146,31 +147,39 @@ set_error_handler(Pred) :-
   assert(error_handler(Pred)).
 
 %% check coroutine magic
-setup_uber_check(Location,Spec,Val) :-
+setup_uber_check(Location,any(Spec),Val) :- !,
   log(debug,'setup_uber_check'),
-  setup_check(Location,Res,Spec,Val),
+  setup_check(Location,Res,Spec,Val,type:var),
   freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
 
-setup_check(Location,Res,Spec,Val) :-
-  setup_check_aux(Spec,Location,Val,Res).
+setup_uber_check(Location,Spec,Val) :-
+  log(debug,'setup_uber_check'),
+  setup_check(Location,Res,Spec,Val,def),
+  freeze(Res, ((Res == true) -> true ; error_handler(X), call(X, Res))).
 
-setup_check_aux(Spec, Location, Val, Res) :-
+setup_check(Location,Res,Spec,Val,Type) :-
+  setup_check_aux(Spec,Location,Val,Res,Type).
+
+  setup_check_aux(Spec, Location, Val, Res, def) :-
+    spec_basic(Spec, Pred), !,
+    freeze(Val, (call(Pred, Val) -> true ; reason(Spec, Location, Val, Res))).
+setup_check_aux(Spec, Location, Val, Res, _) :-
   spec_predicate(Spec, Pred), !,
   freeze(Val, (call(Pred, Val) -> true ; reason(Spec, Location, Val, Res))).
-setup_check_aux(Spec, Location, Val, Res) :-
+setup_check_aux(Spec, Location, Val, Res, Type) :-
   spec_indirection(Spec, OtherSpec), !,
-  setup_check_aux(OtherSpec, Location, Val, Res).
-setup_check_aux(Spec, Location, Val, Res) :-
+  setup_check_aux(OtherSpec, Location, Val, Res, Type).
+setup_check_aux(Spec, Location, Val, Res, _) :-
   spec_predicate_recursive(Spec, Pred, _MergePred, MergePredInvariant), !,
   freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
     ->  call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
      ;  reason(Spec, Location, Val, Res))).
-setup_check_aux(Spec, Location, Val, Res) :-
+setup_check_aux(Spec, Location, Val, Res, _) :-
   spec_connective(Spec, Pred, _MergePred, MergePredInvariant), !,
   freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
     ->  call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
      ;  reason(Spec, Location, Val, Res))).
-setup_check_aux(Spec, Location, _, fail(spec_not_found(spec(Spec), location(Location)))).
+setup_check_aux(Spec, Location, _, fail(spec_not_found(spec(Spec), location(Location))),_).
 
 
 
@@ -221,7 +230,7 @@ error_not_matching_any_pre(Functor, Args, PreSpecs) :-
 
 invariand([], [], _, true).
 invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
-  setup_check(Location, ResElement,HSpec, HVal),
+  setup_check(Location, ResElement,HSpec, HVal, def),
   freeze(TVal, invariand(TSpec, TVal, Location, ResTail)), % TODO: do we need this freeze?
   both_eventually_true(ResElement, ResTail, R).
 
@@ -232,11 +241,14 @@ and_invariant(Specs, Vals, Location, R) :-
 
 or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
   freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason) ; true)).
-or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
-  setup_check(Location, ResOption, H, V),
+or_invariant([any(H)|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :- !,
+  setup_check(Location, ResOption, H, V, type:var),
   freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
   or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
-
+or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
+  setup_check(Location, ResOption, H, V, def),
+  freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
+  or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
 :- public or_invariant/4.
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
   or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).

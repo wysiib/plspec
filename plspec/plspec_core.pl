@@ -1,4 +1,4 @@
-:- module(plspec_core,
+:- module(plspec_checker,
             %plspec predicates
            [enable_all_spec_checks/0,
             spec_pre/2, spec_post/3, spec_invariant/2,
@@ -9,8 +9,9 @@
             %logger
             set_loglevel/1, log/3,
             %multifile:
-            asserted_spec_pre/2, asserted_spec_invariant/2,
-            asserted_spec_post/3, check_predicate/1
+            asserted_spec_pre/3, asserted_spec_invariant/3,
+            asserted_spec_invariant/4, asserted_spec_post/5,
+            check_predicate/1
             ]).
 :- use_module(plspec).
 :- use_module(validator).
@@ -43,18 +44,18 @@ expansion(Head,Goal,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NewHead
 should_expand(A, F, Module, Arity) :-
   functor(A,F,Arity),
   %trace,
-  (plspec:asserted_spec_pre(Module:F/Arity, _) ;
-   plspec:asserted_spec_invariant(Module:F/Arity, _) ;
-   plspec:asserted_spec_post(Module:F/Arity, _, _)
+  (plspec:asserted_spec_pre(Module:F/Arity, _, _) ;
+   plspec:asserted_spec_invariant(Module:F/Arity, _, _) ;
+   plspec:asserted_spec_post(Module:F/Arity, _, _, _, _)
   ), !,
   plspec:check_predicate(F/Arity).
 
 expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
   should_expand(A, F, Module, Arity), !,
-  findall(PreSpec, plspec:asserted_spec_pre(Module:F/Arity,PreSpec), PreSpecs),
-  findall(InvSpec, plspec:asserted_spec_invariant(Module:F/Arity,InvSpec),InvariantSpecOrEmpty),
-  findall(PreSpec2,plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_),PrePostSpecs),
-  findall(PostSpec,plspec:asserted_spec_post(Module:F/Arity,_,PostSpec),PostSpecs),
+  findall(PreSpec, plspec:asserted_spec_pre(Module:F/Arity,PreSpec, _TypePre), PreSpecs),
+  findall(InvSpec, plspec:asserted_spec_invariant(Module:F/Arity,InvSpec, _TypeInv),InvariantSpecOrEmpty),
+  findall(PreSpec2,plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_,_TypePre2,_),PrePostSpecs),
+  findall(PostSpec,plspec:asserted_spec_post(Module:F/Arity,_,PostSpec,_,_TypePost),PostSpecs),
   expansion(A,B,PreSpecs,InvariantSpecOrEmpty,PrePostSpecs,PostSpecs,NA,NB).
 
 do_expand(':-'(spec_pre(Predicate/Arity, Spec)),
