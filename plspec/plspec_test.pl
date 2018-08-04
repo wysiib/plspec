@@ -4,6 +4,9 @@
 :- enable_all_spec_checks.
 :- use_module('plspec_test.plspec').
 
+:- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
+                            atom(empty)])).
+
 :- spec_pre(my_member/2,[any,[any]]).
 :- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
 :- spec_post(my_member/2,[any,var],[any,[any]]).
@@ -19,7 +22,7 @@ my_member_int(E,[_|T]) :-
 
 
 :- spec_pre(my_member_specific/2,[X,list(X)]).
-my_member_specific(E,[E|_]).
+my_member_specific(E,[E|_]) :- !.
 my_member_specific(E,[_|T]) :-
   my_member_specific(E,T).
 
@@ -38,6 +41,20 @@ test(invalid_my_member_int, [throws(_)]) :-
 test(valid_my_member_specific, [nondet]) :-
   my_member_specific(1,[1,2,3]),
   \+ my_member_specific(a,[b,c]).
+
+test(tree_no_int, [throws(_)]) :-
+  my_member_specific(node(empty, 1, empty), [1,2,3]).
+
+test(empty_is_atomic) :- % this works, because empty and 1 are both atomic.
+  \+ my_member_specific(empty, [1,2,3]).
+
+test(tree_in_tree_out) :-
+  my_member_specific(empty, [empty, node(empty, 1, empty)]),
+  my_member_specific(node(empty, 1, empty), [node(empty, 1, empty), node(empty, 2, empty)]),
+  \+ my_member_specific(node(empty, 1, node(empty, 2, empty)), [node(empty, 1, empty), node(empty, 2, empty)]).
+
+test(tree_no_atom, [throws(_)]) :-
+  my_member_specific(node(node(empty, a, empty), b, empty), [these, are, atoms]).
 
 :- end_tests(specific_any).
 
@@ -295,26 +312,7 @@ test(tree3) :-
 :- end_tests(trees).
 
 
-:- defspec_pred(int(X), int(X)).
 
-int(even, X) :- 0 is X mod 2.
-int(odd, X) :- 1 is X mod 2.
-
-:- begin_tests(self_defined_int, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
-
-test(zero_is_even) :-
-  valid(int(even), 0).
-
-test(zero_is_not_odd) :-
-  \+ valid(int(odd), 0).
-
-test(one_is_odd) :-
-  valid(int(odd), 1).
-
-test(one_is_not_even) :-
-  \+ valid(int(even), 1).
-
-:- end_tests(self_defined_int).
 
 :- spec_pre(bind_to_zero/1, [any]).
 :- spec_post(bind_to_zero/1, [any], [list(any)]).
