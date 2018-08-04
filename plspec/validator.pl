@@ -66,8 +66,6 @@ valid(Type, Spec, Val) :-
   evaluate_spec_match(Spec, Type, Val, Success),
   Success == true.
 
-
-
 valid(Spec, Val) :-
   ground(Spec),
   evaluate_spec_match(Spec, def, Val, Success),
@@ -75,7 +73,7 @@ valid(Spec, Val) :-
 
 valid(Spec, Val) :-
   \+ ground(Spec),
-  evaluate_spec_match(Spec, def, Val, Success),
+  evaluate_spec_match(Spec, any, Val, Success),
   Success == true.
 
 list_valid([],[]) :- !.
@@ -134,7 +132,7 @@ evaluate_spec_match_aux(Spec, Type, Val, Res) :-
 
 % a connective spec
 evaluate_spec_match_aux(Spec, Type, Val, Res) :-
-    nonvar(Spec),
+    %nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
@@ -194,9 +192,10 @@ and([S|Specs], Type, [V|Vals], Res) :-
      ; Res = fail(spec_not_matched(spec(S), value(V)))).
 
 :- public or/4.
-or(Specs, Type, Vals, true) :-
-    or2(Specs, Type, Vals), !.
-or(Specs, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
+or(Specs, Type, Vals, Result) :-
+  (or2(Specs, Type, Vals)
+    -> Result = true
+    ; Result = fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
 
 or2([HSpec|TSpec], Type, [HVal|TVal]) :-
     (evaluate_spec_match(HSpec, Type, HVal, true)

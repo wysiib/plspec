@@ -44,12 +44,6 @@ PrePostSpecs,PrePostSpecTypes, PostSpecs, PostSpecTypes, NewHead,NewBody) :-
               Goal,
               lists:maplist(plspec:check_posts(Args),ValidPrePostSpecs,PostsToCheck,PostTypesToCheck)).
 
-
-create_list(_,[],0) :- !.
-create_list(X,[X|Rest],Length) :-
-  L2 is Length-1,
-  create_list(X,Rest,L2).
-
 should_expand(A, F, Module, Arity) :-
   functor(A,F,Arity),
   %trace,
