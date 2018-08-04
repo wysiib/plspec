@@ -41,15 +41,17 @@ spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 %When does a predicate exists:
 
-spec_exists(X) :- spec_indirection(X, _).
-spec_exists(X) :- spec_basic(X, _).
-spec_exists(X) :- spec_predicate(X, _).
-spec_exists(X) :- spec_predicate_recursive(X, _, _, _).
-spec_exists(X) :- spec_connective(X, _, _, _).
-spec_exists(X, indirection(Y)) :- spec_indirection(X, Y).
-spec_exists(X, predicate(Y)) :- spec_predicate(X, Y).
-spec_exists(X, predicate_recursive(A,B,C)) :- spec_predicate_recursive(X, A, B, C).
-spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C).
+
+
+spec_exists(X) :- spec_indirection(X, _), !.
+spec_exists(X) :- spec_basic(X, _), !.
+spec_exists(X) :- spec_predicate(X, _), !.
+spec_exists(X) :- spec_predicate_recursive(X, _, _, _), !.
+spec_exists(X) :- spec_connective(X, _, _, _), !.
+spec_exists(X, indirection(Y)) :- spec_indirection(X, Y), !.
+spec_exists(X, predicate(Y)) :- spec_predicate(X, Y), !.
+spec_exists(X, predicate_recursive(A,B,C)) :- spec_predicate_recursive(X, A, B, C), !.
+spec_exists(X, connective(A,B,C)) :- spec_connective(X, A, B, C), !.
 
 :- public true/1.
 true(_).
