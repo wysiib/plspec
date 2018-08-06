@@ -59,37 +59,37 @@ true(_).
 atom(X, Y) :- atom(Y), X = Y.
 
 valid(Type, Spec, Val) :-
-  ground(Spec),
-  evaluate_spec_match(Spec, Type, Val, Success),
-  Success == true, !.
+    ground(Spec),
+    evaluate_spec_match(Spec, Type, Val, Success),
+    Success == true, !.
 
 valid(Type, Spec, Val) :-
-  \+ ground(Spec),
-  evaluate_spec_match(Spec, Type, Val, Success),
-  Success == true.
+    \+ ground(Spec),
+    evaluate_spec_match(Spec, Type, Val, Success),
+    Success == true.
 
 valid(Spec, Val) :-
-  ground(Spec),
-  evaluate_spec_match(Spec, def, Val, Success),
-  Success == true, !.
+    ground(Spec),
+    evaluate_spec_match(Spec, def, Val, Success),
+    Success == true, !.
 
 valid(Spec, Val) :-
-  \+ ground(Spec),
-  evaluate_spec_match(Spec, any, Val, Success),
-  Success == true.
+    \+ ground(Spec),
+    evaluate_spec_match(Spec, any, Val, Success),
+    Success == true.
 
 list_valid([],[]) :- !.
 list_valid([Spec|Specs],[Val|Vals]) :-
-  valid(Spec, Val),
-  list_valid(Specs, Vals).
+    valid(Spec, Val),
+    list_valid(Specs, Vals).
 
 
 % evaluate_spec_match
 %% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
 evaluate_spec_match(Spec, _Type, _, fail(spec_not_found(spec(Spec)))) :-
-  nonvar(Spec),
-  \+ spec_exists(Spec), !,
-  log(warning,'spec ~w not found~n', [Spec]).
+    nonvar(Spec),
+    \+ spec_exists(Spec), !,
+    log(warning,'spec ~w not found~n', [Spec]).
 
 evaluate_spec_match(Spec, Type, Val, Res) :-
     %spec_exists(Spec),
@@ -138,9 +138,11 @@ evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals)
-     -> call(MergePred, NewSpecs, Type, NewVals, Res)
-     ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
+        -> call(MergePred, NewSpecs, Type, NewVals, Res)
+        ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
+    (copy_term(Val, Valii), variant(Valii, Vali)
+        -> true
+        ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
 
 %spec was an alias for another spec
 evaluate_spec_match_aux(Spec, Type, Val, Res) :-
@@ -195,11 +197,11 @@ and([S|Specs], Type, [V|Vals], Res) :-
 
 :- public or/4.
 or(Specs, Type, Vals, true) :-
-  or2(Specs, Type, Vals).
+    or2(Specs, Type, Vals).
 or(Specs, _, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals)))).
 
 or2([HSpec|TSpec], Type, [HVal|TVal]) :-
-  evaluate_spec_match(HSpec, Type, HVal, X),
-  (X == true
-    -> true
-    ;  or2(TSpec, Type, TVal)).
+    evaluate_spec_match(HSpec, Type, HVal, X),
+    (X == true
+      -> true
+      ;  or2(TSpec, Type, TVal)).
