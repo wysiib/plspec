@@ -259,7 +259,7 @@ which_posts([_|Pres],[_|PreTypes],[_|Posts],[_|PostTypes],Args,PreT,T,Z) :-
 
 check_posts([], [], [], _).
 check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT], PostType) :-
-    evaluate_spec_match(Post, PostType, Arg, Res),
+    evaluate_spec_match(Post, PostType, Arg, Res),!,
     (Res == true ->
         check_posts(ArgT, PreT, PostT, PostType)
     ;
