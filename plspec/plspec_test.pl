@@ -3,9 +3,12 @@
 :- use_module(library(plunit)).
 :- enable_all_spec_checks.
 :- use_module('plspec_test.plspec').
+:- use_module(library(clpfd)).
 
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
                             atom(empty)])).
+
+
 
 :- spec_pre(my_member/2,[any,[any]]).
 :- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
@@ -26,8 +29,7 @@ my_member_specific(E,[E|_]) :- !.
 my_member_specific(E,[_|T]) :-
   my_member_specific(E,T).
 
-foo(A,B) :-
-  my_member(A,B).
+
 
 
 :- begin_tests(specific_any, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
