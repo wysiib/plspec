@@ -1,5 +1,6 @@
 :- use_module(plspec_core).
 :- use_module(library(plunit)).
+:- set_loglevel(error).
 
 :- enable_all_spec_checks.
 
@@ -45,6 +46,13 @@ next_fib_no_annotations(X,Y) :-
     between(X,P,Y),
     Y > X,
     is_fib(Y), !.
+
+:- spec_pre(my_member/2,[any,[any]]).
+:- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
+:- spec_post(my_member/2,[any,var],[any,[any]]).
+my_member(E,[E|_]).
+my_member(E,[_|T]) :-
+    my_member(E,T).
 
 :- begin_tests(contain_determinism, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
