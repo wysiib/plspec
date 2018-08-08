@@ -238,11 +238,11 @@ reason(T, Location, V, Reason) :-
             )
 ).
 
-which_posts([],[],[],[],_,[],[],[]).
+which_posts([],[],[],[],_,[],[],[]) :- !.
 which_posts([Pre|PresBefore], [PreType|PreTypes],
             [Post|Posts], [PostType|PostTypes], Args,
             [Pre|PresAfter], [Post|PostAfter], [PostType|PostTypesAfter]) :-
-    once(maplist(valid(PreType),Pre,Args)),
+    maplist(valid(PreType),Pre,Args),!,
     which_posts(
         PresBefore,
         PreTypes,
