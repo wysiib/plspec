@@ -42,9 +42,10 @@ expansion(Head, Body, PreSpecs, PreSpecTypes,
                 plspec:error_not_matching_any_pre(
                     Functor/Lenny,
                     NewArgs,
-                    PreSpecs),!
+                    PreSpecs
                 )
-            ),
+            )
+        ),
             (InvariantSpecOrEmpty = [InvariantSpec] ->
                 InvSpecTypes = [InvSpecType],
                 lists:maplist(

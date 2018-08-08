@@ -24,7 +24,8 @@ my_member_int(E,[_|T]) :-
   my_member_int(E,T).
 
 
-:- spec_pre(my_member_specific/2,[X,list(X)]).
+
+:- spec_pre(my_member_specific/2, [X,list(X)]).
 my_member_specific(E,[E|_]) :- !.
 my_member_specific(E,[_|T]) :-
   my_member_specific(E,T).
@@ -80,6 +81,7 @@ test(all_variables_not_conform, [nondet, throws(_)]) :-
 
 test(not_conform, [throws(_)]) :-
   my_member([], a).
+
 
 :- end_tests(my_member_spec).
 
