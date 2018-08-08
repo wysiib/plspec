@@ -26,8 +26,6 @@ spec_predicate(integer, integer).
 spec_predicate(number, number).
 spec_predicate(float, float).
 
-
-
 spec_predicate_recursive(compound(X), compound(X), and, and_invariant).
 spec_predicate_recursive(list(X), list(X), and, and_invariant).
 spec_predicate_recursive(tuple(X), tuple(X), and, and_invariant).
@@ -40,9 +38,6 @@ spec_connective(and([H|T]), spec_and([H|T]), and, and_invariant).
 spec_connective(one_of(X), spec_and(X), or, or_invariant).
 
 %When does a predicate exists:
-
-
-
 spec_exists(X) :- spec_indirection(X, _), !.
 spec_exists(X) :- spec_basic(X, _), !.
 spec_exists(X) :- spec_predicate(X, _), !.
@@ -78,14 +73,8 @@ valid(Spec, Val) :-
     evaluate_spec_match(Spec, any, Val, Success),
     Success == true.
 
-list_valid([],[]) :- !.
-list_valid([Spec|Specs],[Val|Vals]) :-
-    valid(Spec, Val),
-    list_valid(Specs, Vals).
 
-
-% evaluate_spec_match
-%% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
+% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
 evaluate_spec_match(Spec, _Type, _, fail(spec_not_found(spec(Spec)))) :-
     nonvar(Spec),
     \+ spec_exists(Spec), !,
@@ -104,45 +93,73 @@ evaluate_spec_match_aux(Spec, def, Val, Res) :-
     spec_basic(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
-    (call(Predicate, Val)
-     -> Res = true
-     ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali)
-      -> true
-      ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (call(Predicate, Val) ->
+        Res = true
+    ;
+        Res = fail(spec_not_matched(spec(Spec), value(Val)))
+    ),
+    (copy_term(Val, Valii), variant(Valii, Vali) ->
+        true
+    ;
+      log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])
+    ).
 
 % a normal spec predicate
 evaluate_spec_match_aux(Spec, _Type, Val, Res) :-
     spec_predicate(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
-    (call(Predicate, Val)
-     -> Res = true
-     ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali)
-      -> true
-      ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (call(Predicate, Val) ->
+        Res = true
+    ;
+        Res = fail(spec_not_matched(spec(Spec), value(Val)))
+    ),
+    (copy_term(Val, Valii), variant(Valii, Vali) ->
+        true
+    ;
+      log(
+        error,
+        'implementation of spec ~w binds variables but should not~n',
+        [Predicate])
+    ).
 
 % a recursive spec
 evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
-    (call(Predicate, Val, NewSpecs, NewVals)
-     -> call(MergePred, NewSpecs, Type, NewVals, Res)
-     ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali) -> true ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (call(Predicate, Val, NewSpecs, NewVals) ->
+        call(MergePred, NewSpecs, Type, NewVals, Res)
+    ;
+        Res = fail(spec_not_matched(spec(Spec), value(Val)))
+    ),
+    (copy_term(Val, Valii), variant(Valii, Vali) ->
+        true
+    ;
+        log(
+            error,
+            'implementation of spec ~w binds variables but should not~n',
+            [Predicate]
+        )
+    ).
 
 % a connective spec
 evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
-    (call(Predicate, Val, NewSpecs, NewVals)
-        -> call(MergePred, NewSpecs, Type, NewVals, Res)
-        ; Res = fail(spec_not_matched(spec(Spec), value(Val)))),
-    (copy_term(Val, Valii), variant(Valii, Vali)
-        -> true
-        ; log(error,'implementation of spec ~w binds variables but should not~n', [Predicate])).
+    (call(Predicate, Val, NewSpecs, NewVals) ->
+        call(MergePred, NewSpecs, Type, NewVals, Res)
+    ;
+        Res = fail(spec_not_matched(spec(Spec), value(Val)))
+    ),
+    (copy_term(Val, Valii), variant(Valii, Vali) ->
+        true
+    ;
+        log(
+            error,
+            'implementation of spec ~w binds variables but should not~n',
+            [Predicate])
+    ).
 
 %spec was an alias for another spec
 evaluate_spec_match_aux(Spec, Type, Val, Res) :-
@@ -163,9 +180,6 @@ list1(L, Spec, [Spec|ST], [H|VT]) :-
 list1(L, _, [], []) :-
     nonvar(L), L = [], !.
 list1(Var, Spec, [list(Spec)], [Var]) :- var(Var).
-
-
-
 
 :- public compound/4.
 compound(Spec, Val, NewSpecs, NewVars) :-
@@ -191,9 +205,11 @@ spec_and(SpecList, Var, SpecList, VarRepeated) :-
 and([], _, [], true).
 and([S|Specs], Type, [V|Vals], Res) :-
     evaluate_spec_match(S, Type, V, X),
-    (X == true
-     -> and(Specs, Type, Vals, Res)
-     ; Res = fail(spec_not_matched(spec(S), value(V)))).
+    (X == true ->
+        and(Specs, Type, Vals, Res)
+    ;
+        Res = fail(spec_not_matched(spec(S), value(V)))
+    ).
 
 :- public or/4.
 or(Specs, Type, Vals, true) :-
@@ -202,6 +218,8 @@ or(Specs, _, Vals, fail(spec_not_matched_merge(specs(or(Specs)), values(Vals))))
 
 or2([HSpec|TSpec], Type, [HVal|TVal]) :-
     evaluate_spec_match(HSpec, Type, HVal, X),
-    (X == true
-      -> true
-      ;  or2(TSpec, Type, TVal)).
+    (X == true ->
+        true
+    ;
+        or2(TSpec, Type, TVal)
+    ).

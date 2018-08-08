@@ -133,6 +133,7 @@ defspec_pred_recursive(SpecId, Predicate, MergePred, MergePredInvariant) :-
             ),
         log(info, 'Recursive spec ~w defined.',[SpecId])
     ).
+
 :- meta_predicate defspec_connective(+, 3,3,4).
 defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
     (spec_exists(SpecId, Existing) ->
@@ -199,16 +200,27 @@ setup_check_aux(Spec, Location, Val, Res, _) :-
 setup_check_aux(Spec, Location, Val, Res, Type) :-
     spec_indirection(Spec, OtherSpec), !,
     setup_check_aux(OtherSpec, Location, Val, Res, Type).
-setup_check_aux(Spec, Location, Val, Res, _) :-
-    spec_predicate_recursive(Spec, Pred, _MergePred, MergePredInvariant), !,
-    freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
-        ->  call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
-        ;  reason(Spec, Location, Val, Res))).
-setup_check_aux(Spec, Location, Val, Res, _) :-
+setup_check_aux(Spec, Location, Val, Res, _Type) :-
+    spec_predicate_recursive(Spec, Pred, _MergePred, MergePredInvariant),
+    !,
+    freeze(
+        Val,
+        (call(Pred, Val, NewSpecs, NewVals) ->
+            call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
+        ;
+            reason(Spec, Location, Val, Res)
+        )
+    ).
+setup_check_aux(Spec, Location, Val, Res, _Type) :-
     spec_connective(Spec, Pred, _MergePred, MergePredInvariant), !,
-    freeze(Val, (call(Pred, Val, NewSpecs, NewVals)
-        ->  call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
-        ;  reason(Spec, Location, Val, Res))).
+    freeze(
+        Val,
+        (call(Pred, Val, NewSpecs, NewVals) ->
+            call(MergePredInvariant, NewSpecs, NewVals, Location, Res)
+        ;
+            reason(Spec, Location, Val, Res)
+        )
+    ).
 setup_check_aux(
     Spec,
     Location,
@@ -248,10 +260,21 @@ which_posts([_|Pres],[_|PreTypes],[_|Posts],[_|PostTypes],Args,PreT,T,Z) :-
 check_posts([], [], [], _).
 check_posts([Arg|ArgT], [Pre|PreT], [Post|PostT], PostType) :-
     evaluate_spec_match(Post, PostType, Arg, Res),
-    (Res == true
-        ->  check_posts(ArgT, PreT, PostT, PostType)
-        ;  error_handler(X),
-           call(X, fail(postcondition_violated(matched_pre(Pre), violated_post(Post), value(Arg))))).
+    (Res == true ->
+        check_posts(ArgT, PreT, PostT, PostType)
+    ;
+        error_handler(X),
+        call(
+            X,
+            fail(
+                postcondition_violated(
+                    matched_pre(Pre),
+                    violated_post(Post),
+                    value(Arg)
+                )
+            )
+        )
+    ).
 
 %% term expansion
 :- meta_predicate plspec_some(1, +).
@@ -267,35 +290,59 @@ plspec_some1([_|T], [_|S], Goal) :-
 spec_matches([], true, [], _).
 spec_matches([Arg|ArgsT], Res, [Spec|SpecT], Type) :-
     evaluate_spec_match(Spec, Type, Arg, R),
-    (R == true
-        ->  spec_matches(ArgsT, Res, SpecT, Type)
-        ;  Res = spec_not_matched(Spec, Arg, in(R))).
+    (R == true ->
+        spec_matches(ArgsT, Res, SpecT, Type)
+    ;
+        Res = spec_not_matched(Spec, Arg, in(R))).
 
 error_not_matching_any_pre(Functor, Args, PreSpecs) :-
     error_handler(X),
-    call(X, fail(prespec_violated(specs(PreSpecs), values(Args), location(Functor)))).
+    call(
+        X,
+        fail(
+            prespec_violated(specs(PreSpecs), values(Args), location(Functor))
+        )
+    ).
 
-invariand([], [], _, true).
-invariand([HSpec|TSpec], [HVal|TVal], Location, R) :-
-    setup_check(Location, ResElement,HSpec, HVal, def),
-    freeze(TVal, invariand(TSpec, TVal, Location, ResTail)), % TODO: do we need this freeze?
+and_invariant([], [], _, true, _).
+and_invariant([HSpec|TSpec], [HVal|TVal], Location, R, Type) :-
+    setup_check(Location, ResElement,HSpec, HVal, Type),
+    freeze(TVal, and_invariant(TSpec, TVal, Location, ResTail, Type)), % TODO: do we need this freeze?
     both_eventually_true(ResElement, ResTail, R).
 
 :- public and_invariant/4.
 and_invariant(Specs, Vals, Location, R) :-
-    invariand(Specs, Vals, Location, R).
+    (ground(Specs) ->
+        and_invariant(Specs, Vals, Location, R, def)
+    ;
+        and_invariant(Specs, Vals, Location, R, any)
+    ).
 
 
 or_invariant([], [], Acc, OrigVals, OrigPattern, Location, UberVar) :-
-    freeze(Acc, (Acc == fail -> (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason) ; true)).
-or_invariant([any(H)|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :- !,
-    setup_check(Location, ResOption, H, V, any),
-    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
-    or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
+    freeze(
+        Acc,
+        (Acc == fail ->
+            (reason(OrigPattern, Location, OrigVals, Reason), UberVar = Reason)
+        ;
+            true
+        )
+    ).
 or_invariant([H|T], [V|VT], Prior, OrigVals, OrigPattern, Location, UberVar) :-
-    setup_check(Location, ResOption, H, V, def),
-    freeze(ResOption, (ResOption == true -> (UberVar = true, Current = true) ; freeze(Prior, (Prior == true -> true; Current = fail)))),
+    setup_check(Location, ResOption, H, V),
+    freeze(
+        ResOption,
+        (ResOption == true ->
+            (UberVar = true, Current = true)
+        ;
+            freeze(
+                Prior,
+                (Prior == true -> true; Current = fail)
+            )
+        )
+    ),
     or_invariant(T, VT, Current, OrigVals, OrigPattern, Location, UberVar).
+
 :- public or_invariant/4.
 or_invariant(NewSpecs, NewVals, Location, FutureRes) :-
     or_invariant(NewSpecs, NewVals, [], NewVals, or(NewSpecs), Location, FutureRes).
