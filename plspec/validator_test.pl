@@ -102,8 +102,8 @@ test(valid_ground, [nondet]) :-
 
 :- defspec_pred(int_oddity(X), int_oddity(X)).
 
-int_oddity(even, X) :- 0 is X mod 2.
-int_oddity(odd, X) :- 1 is X mod 2.
+int_oddity(even, X) :- integer(X), 0 is X mod 2.
+int_oddity(odd, X) :- integer(X), 1 is X mod 2.
 
 :- begin_tests(self_defined_int, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
@@ -136,3 +136,19 @@ test(invalid_trees) :-
   \+ valid(tree(int), tree(empty, 1, empty)).
 
 :- end_tests(tree).
+
+:- begin_tests(specific_any).
+
+test(valid_int) :-
+    findall(X, valid(X,3), L),
+    length(L,5).
+
+test(valid_int_tree) :-
+    findall(X, valid(tree(X), node(empty, 3, empty)), L),
+    length(L,5).
+
+test(valid_atomic_tree) :-
+    findall(X, valid(tree(X), node(node(empty, mario, empty), 3, empty)), L),
+    length(L,1).
+
+:- end_tests(specific_any).

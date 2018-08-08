@@ -33,6 +33,9 @@ is_fib(N,X) :-
 :- defspec_pred(fib, is_fib).
 
 
+
+
+
 :- spec_pre(next_fib/2, [ground, var]).
 :- spec_post(next_fib/2, [ground, var], [ground, fib]).
 next_fib(X, Y) :-
@@ -47,11 +50,19 @@ next_fib_no_annotations(X,Y) :-
     Y > X,
     is_fib(Y), !.
 
-:- spec_pre(my_member/2,[any,[any]]).
-:- spec_post(my_member/2,[any,[ground]],[ground,[ground]]).
-:- spec_post(my_member/2,[any,var],[any,[any]]).
+%:- spec_pre(golden_ratio/2, [and([ground, fib]), var]).
+:- spec_post(golden_ratio/2, [and([ground, fib]), var], [fib, number]).
+golden_ratio(X,R) :-
+    next_fib(X,Y),
+    R is Y/X.
+
+:- spec_post(my_member/2,[X,any],[X, list(X)]).
 my_member(E,[E|_]).
 my_member(E,[_|T]) :-
+    my_member(E,T).
+
+my_member_bla(E,[E|_]) :- !.
+my_member_bla(E,[_|T]) :-
     my_member(E,T).
 
 :- begin_tests(contain_determinism, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
@@ -63,5 +74,15 @@ test(normal_next_fib) :-
 test(spec_next_fib,[true(X=:=13)]) :-
     next_fib(8,X),
     X =:= 13.
+
+test(my_member_create_list, []) :-
+    my_member(1,T),
+    T = [2,2,2,1,2], !.
+
+test(golden_ratio_one_solution, []) :-
+    golden_ratio(1,R),
+    R =:= 2,
+    findall(X, golden_ratio(34,X), L),
+    length(L,1).
 
 :- end_tests(contain_determinism).
