@@ -13,6 +13,10 @@
 :- dynamic spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 :- multifile spec_indirection/2, spec_predicate/2, spec_predicate_recursive/4, spec_connective/4.
 
+
+
+
+
 spec_basic(var, var).
 spec_basic(ground, ground).
 spec_basic(nonvar, nonvar).
