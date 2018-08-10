@@ -91,7 +91,10 @@ evaluate_spec_match(Spec, Type, Val, Res) :-
 %evaluate_spec_match_aux matches the value Val against the existing spec Spec.
 % There are different kinds of spec predicates:
 
-
+%spec was an alias for another spec
+evaluate_spec_match_aux(Spec, Type, Val, Res) :-
+    spec_indirection(Spec, NewSpec),
+    evaluate_spec_match(NewSpec, Type, Val, Res).
 % a basic spec %TODO: find better name
 evaluate_spec_match_aux(Spec, def, Val, Res) :-
     spec_basic(Spec, Predicate),
@@ -165,10 +168,7 @@ evaluate_spec_match_aux(Spec, Type, Val, Res) :-
             [Predicate])
     ).
 
-%spec was an alias for another spec
-evaluate_spec_match_aux(Spec, Type, Val, Res) :-
-    spec_indirection(Spec, NewSpec),
-    evaluate_spec_match(NewSpec, Type, Val, Res).
+
 
 % built-in recursive specs
 list(Spec, Val, NewSpecs, NewVals) :-
