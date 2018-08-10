@@ -104,7 +104,7 @@ test(golden_ratio_one_solution, []) :-
 :- defspec(f_or_g, one_of([f,g])).
 
 :- spec_pre(fun/2, [X,X]).
-fun(F,G).
+fun(_,_).
 
 :- begin_tests(order, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
