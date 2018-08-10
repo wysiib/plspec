@@ -1,6 +1,6 @@
 :- use_module(plspec_core).
 :- use_module(library(plunit)).
-:- set_loglevel(error).
+:- set_loglevel(debug).
 
 :- enable_all_spec_checks.
 
@@ -16,6 +16,7 @@ fib(N, X) :-
     X is A+B.
 
 is_fib(X) :-
+    integer(X),
     is_fib(0,X).
 is_fib(N,X) :-
     fib(N,P),
@@ -32,7 +33,16 @@ is_fib(N,X) :-
 
 :- defspec_pred(fib, is_fib).
 
+:- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
+                            atom(empty)])).
 
+:- spec_pre(elem_tree_to_list_tree/2, [tree(X), tree([X])]).
+elem_tree_to_list_tree(empty, empty) :- !.
+elem_tree_to_list_tree(node(A,X,B), node(NA,[X], NB)) :-
+    elem_tree_to_list_tree(A,NA),
+    elem_tree_to_list_tree(B,NB).
+:- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
+                            atom(empty)])).
 
 
 
@@ -86,3 +96,18 @@ test(golden_ratio_one_solution, []) :-
     length(L,1).
 
 :- end_tests(contain_determinism).
+
+
+
+:- asserta(validator:spec_predicate(f, atom(f))).
+:- asserta(validator:spec_predicate(g, atom(g))).
+:- defspec(f_or_g, one_of([f,g])).
+
+:- spec_pre(fun/2, [X,X]).
+fun(F,G).
+
+:- begin_tests(order, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
+
+
+
+:- end_tests(order).

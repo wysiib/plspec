@@ -5,8 +5,6 @@
 :- use_module('plspec_test.plspec').
 :- use_module(library(clpfd)).
 
-:- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
-                            atom(empty)])).
 
 
 
