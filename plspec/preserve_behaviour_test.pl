@@ -1,6 +1,6 @@
 :- use_module(plspec_core).
 :- use_module(library(plunit)).
-:- set_loglevel(debug).
+:- set_loglevel(error).
 
 :- enable_all_spec_checks.
 
