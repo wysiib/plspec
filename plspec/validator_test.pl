@@ -102,8 +102,8 @@ test(valid_ground, [nondet]) :-
 
 :- defspec_pred(int_oddity(X), int_oddity(X)).
 
-int_oddity(even, X) :- 0 is X mod 2.
-int_oddity(odd, X) :- 1 is X mod 2.
+int_oddity(even, X) :- integer(X), 0 is X mod 2.
+int_oddity(odd, X) :- integer(X), 1 is X mod 2.
 
 :- begin_tests(self_defined_int, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
