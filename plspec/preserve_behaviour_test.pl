@@ -1,6 +1,6 @@
 :- use_module(plspec_core).
 :- use_module(library(plunit)).
-:- set_loglevel(debug).
+:- set_loglevel(error).
 
 :- enable_all_spec_checks.
 
@@ -46,8 +46,8 @@ elem_tree_to_list_tree(node(A,X,B), node(NA,[X], NB)) :-
 
 
 
-:- spec_pre(next_fib/2, [ground, var]).
-:- spec_post(next_fib/2, [ground, var], [ground, fib]).
+:- spec_pre(next_fib/2, [number, var]).
+:- spec_post(next_fib/2, [number, var], [number, fib]).
 next_fib(X, Y) :-
     P is 2*X,
     between(X,P,Y),
@@ -96,8 +96,3 @@ test(golden_ratio_one_solution, []) :-
     length(L,1).
 
 :- end_tests(contain_determinism).
-
-
-
-
-

@@ -56,8 +56,6 @@ expansion(Head, Body, PreSpecs, PreSpecTypes,
             ;
                 true
             ),
-            % unify with pattern matching of head
-            NewArgs = Args,
             % gather all matching postconditions
             plspec:which_posts(
                 PrePostSpecs,
@@ -69,6 +67,8 @@ expansion(Head, Body, PreSpecs, PreSpecTypes,
                 PostsToCheck,
                 PostTypesToCheck
             ),
+            % unify with pattern matching of head
+            NewArgs = Args,
             Body,
             lists:maplist(
                 plspec:check_posts(Args),
