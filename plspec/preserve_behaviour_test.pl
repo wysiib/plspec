@@ -99,15 +99,5 @@ test(golden_ratio_one_solution, []) :-
 
 
 
-:- asserta(validator:spec_predicate(f, atom(f))).
-:- asserta(validator:spec_predicate(g, atom(g))).
-:- defspec(f_or_g, one_of([f,g])).
-
-:- spec_pre(fun/2, [X,X]).
-fun(_,_).
-
-:- begin_tests(order, [setup(plspec:set_error_handler(throw)), cleanup(plspec:set_error_handler(plspec_default_error_handler))]).
 
 
-
-:- end_tests(order).
