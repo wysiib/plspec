@@ -46,37 +46,38 @@ expansion(Head, Body, PreSpecs, PreSpecTypes,
                 )
             )
         ),
-            (InvariantSpecOrEmpty = [InvariantSpec] ->
-                InvSpecTypes = [InvSpecType],
-                lists:maplist(
-                    plspec:setup_uber_check(Functor/Lenny,InvSpecType),
-                    InvariantSpec,
-                    NewArgs
-                )
-            ;
-                true
-            ),
-            % gather all matching postconditions
-            plspec:which_posts(
-                PrePostSpecs,
-                PrePostSpecTypes,
-                PostSpecs,
-                PostSpecTypes,
-                Args,
-                ValidPrePostSpecs,
-                PostsToCheck,
-                PostTypesToCheck
-            ),
-            % unify with pattern matching of head
-            NewArgs = Args,
-            Body,
+        (InvariantSpecOrEmpty = [InvariantSpec] ->
+            InvSpecTypes = [InvSpecType],
             lists:maplist(
-                plspec:check_posts(Args),
-                ValidPrePostSpecs,
-                PostsToCheck,
-                PostTypesToCheck
+                plspec:setup_uber_check(Functor/Lenny,InvSpecType),
+                InvariantSpec,
+                NewArgs
             )
-        ).
+        ;
+            true
+        ),
+        % gather all matching postconditions
+        plspec:which_posts(
+             PrePostSpecs,
+             PrePostSpecTypes,
+             PostSpecs,
+             PostSpecTypes,
+             Args,
+             ValidPrePostSpecs,
+             PostsToCheck,
+             PostTypesToCheck),
+        log(debug, 'These pre-post specs matched: ~w', [PrePostSpecs]),
+        % unify with pattern matching of head
+        NewArgs = Args,
+        log(debug, 'Unified the arguments with ~w', [Args]),
+        Body,
+        lists:maplist(
+            plspec:check_posts(Args),
+            ValidPrePostSpecs,
+            PostsToCheck,
+            PostTypesToCheck
+        )
+    ).
 
 
 should_expand(A, F, Module, Arity) :-
@@ -161,8 +162,8 @@ do_expand(
     ':-'(plspec:spec_post(Predicate/Arity, SpecPre, SpecPost)),
     Module,
     ':-'(plspec:spec_post(Module:Predicate/Arity, SpecPre, SpecPost))).
-do_expand(':-'(A, B), Module, ':-'(NA, NB)) :-
-  log(debug,'do_expand of ~w',[':-'(A, B)]),
+do_expand(':-'(A, B), Module, ':-'(NA, NB)) :- !,
+  log(debug,'do_expand of ~w',[A]),
   expandeur(':-'(A, B), Module, ':-'(NA, NB)).
 do_expand(A, Module, ':-'(NA, NB)) :-
   log(debug,'do_expand of ~w',[A]),

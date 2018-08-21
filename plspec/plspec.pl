@@ -282,7 +282,9 @@ plspec_some(Goal, List, List2) :-
     plspec_some1(List, List2, Goal).
 plspec_some1([],[], _) :- fail.
 plspec_some1([H|_], [G|_], Goal) :-
-    call(Goal,H,G), !.
+    call(Goal,H,G),
+    log(debug, 'Pre-Spec ~w matched!',[H]),
+    !.
 plspec_some1([_|T], [_|S], Goal) :-
     plspec_some1(T, S, Goal).
 

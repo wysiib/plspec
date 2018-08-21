@@ -85,8 +85,7 @@ evaluate_spec_match(Spec, _Type, _, fail(spec_not_found(spec(Spec)))) :-
     log(warning,'spec ~w not found~n', [Spec]).
 
 evaluate_spec_match(Spec, Type, Val, Res) :-
-    %spec_exists(Spec),
-    evaluate_spec_match_aux(Spec, Type,Val, Res).
+    evaluate_spec_match_case(Spec, Type,Val, Res).
 
 %evaluate_spec_match_aux matches the value Val against the existing spec Spec.
 % There are different kinds of spec predicates:
@@ -96,7 +95,7 @@ evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     spec_indirection(Spec, NewSpec),
     evaluate_spec_match(NewSpec, Type, Val, Res).
 % a basic spec %TODO: find better name
-evaluate_spec_match_aux(Spec, def, Val, Res) :-
+evaluate_spec_match_case(Spec, def, Val, Res) :-
     spec_basic(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
@@ -112,7 +111,7 @@ evaluate_spec_match_aux(Spec, def, Val, Res) :-
     ).
 
 % a normal spec predicate
-evaluate_spec_match_aux(Spec, _Type, Val, Res) :-
+evaluate_spec_match_case(Spec, _Type, Val, Res) :-
     spec_predicate(Spec, Predicate),
     %% HACK: copy_term does weird things to co-routines
     copy_term(Val, Vali),
@@ -131,7 +130,7 @@ evaluate_spec_match_aux(Spec, _Type, Val, Res) :-
     ).
 
 % a recursive spec
-evaluate_spec_match_aux(Spec, Type, Val, Res) :-
+evaluate_spec_match_case(Spec, Type, Val, Res) :-
     spec_predicate_recursive(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
     (call(Predicate, Val, NewSpecs, NewVals) ->
@@ -150,7 +149,7 @@ evaluate_spec_match_aux(Spec, Type, Val, Res) :-
     ).
 
 % a connective spec
-evaluate_spec_match_aux(Spec, Type, Val, Res) :-
+evaluate_spec_match_case(Spec, Type, Val, Res) :-
     nonvar(Spec),
     spec_connective(Spec, Predicate, MergePred, _MergePredInvariant),
     copy_term(Val, Vali),
@@ -168,7 +167,10 @@ evaluate_spec_match_aux(Spec, Type, Val, Res) :-
             [Predicate])
     ).
 
-
+%spec was an alias for another spec
+evaluate_spec_match_case(Spec, Type, Val, Res) :-
+    spec_indirection(Spec, NewSpec),
+    evaluate_spec_match(NewSpec, Type, Val, Res).
 
 % built-in recursive specs
 list(Spec, Val, NewSpecs, NewVals) :-
