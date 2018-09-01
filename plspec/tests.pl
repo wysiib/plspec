@@ -4,3 +4,6 @@
 :- [validator_test].
 :- [preserve_behaviour_test].
 :- [unbound_spec_test].
+:- [cycle_detection_test].
+
+:- set_loglevel(error).
