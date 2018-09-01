@@ -97,15 +97,113 @@ log_spec_already_exists(SpecId, ExistingDefinition, NewDefinition) :-
     ;
         log(warning,'spec ~w already exists, will not be redefined~n', [SpecId])).
 
-:- meta_predicate defspec_pred(+, 1).
+
+compound_to_parts(Var,[]) :-
+    var(Var), !.
+
+compound_to_parts(Compound, Parts) :-
+    (Compound =.. [:, user|[T]] ->
+        T =.. L; Compound =.. L),
+    compound_to_parts(L,[],Parts).
+
+compound_to_parts([],Res,Res) :- !.
+
+compound_to_parts([H|T], Acc, Parts) :-
+    var(H), !,
+    compound_to_parts(T,Acc,Parts).
+
+compound_to_parts([H|T], Acc, Parts) :-
+    H =.. [A],
+    (A = one_of; A = and; A = atom; A = compound),!,
+    compound_to_parts(T,Acc,Parts).
+
+compound_to_parts([H|T], Acc, Parts) :-
+    H =.. [_],
+    member(H,Acc),!,
+    compound_to_parts(T,Acc,Parts).
+
+compound_to_parts([H|T], Acc, Parts) :-
+    H =.. [_], !,
+    compound_to_parts(T,[H|Acc],Parts).
+
+
+compound_to_parts([H|T], Acc, Parts) :-
+    is_list(H),!,
+    compound_to_parts(H,Acc,AccWithHead),
+    compound_to_parts(T,AccWithHead,Parts).
+
+compound_to_parts([H|T], Acc, Parts) :-
+    H =.. L,
+    compound_to_parts(L, Acc, AccWithInner),
+    compound_to_parts(T,AccWithInner,Parts).
+
+find_recursives(SpecId,SpecDef) :-
+    compound_to_parts(SpecDef, Parts),
+    SpecId =.. [SpecName|_],
+    assert(self_defined(SpecName,SpecId)),
+    build_nodes(SpecName,Parts),
+    (member(SpecName,Parts) -> assert(is_recursive(SpecName)); true),
+    mark_recursives.
+
+build_nodes(SpecName,[H]) :-
+    !,
+    assert(from_to(SpecName,H)).
+build_nodes(SpecName,[H|T]) :-
+    assert(from_to(SpecName,H)),
+    build_nodes(SpecName,T).
+
+children(A,Children) :-
+    findall(B,from_to(A,B),L),
+    list_to_set(L,Children).
+
+mark_recursives :-
+    findall(A,from_to(A,_),From),
+    findall(B,from_to(_,B),To),
+    append(From,To,All),
+    list_to_set(All,Set),
+    maplist(cycle_detection,Set).
+
+
+cycle_detection(SpecName) :-
+    children(SpecName,Children),
+    cycle_detection(SpecName,Children,[]).
+cycle_detection(_SpecName,[],_) :- !.
+cycle_detection(SpecName,_,_) :-
+    is_recursive(SpecName), !.
+cycle_detection(SpecName,[H|_],_) :-
+    SpecName = H, !,
+    mark_recursive(H).
+cycle_detection(SpecName, [H|_],_) :-
+    is_recursive(H),!,
+    mark_recursive(SpecName).
+cycle_detection(SpecName,[H|Queue],Visited) :-
+    children(H,ChildrenOfH),
+    subtract(ChildrenOfH,Visited,NewMember),
+    append(Queue,NewMember,NewQueue),
+    list_to_set(NewQueue,NewQueueSet),
+    list_to_set([H|Visited],NewVisited),
+    cycle_detection(SpecName,NewQueueSet,NewVisited).
+
+mark_recursive(SpecName) :-
+    is_recursive(SpecName) -> true; assert(is_recursive(SpecName)).
+
+
+
+
+
+
+
+
+%:- meta_predicate defspec(+, 1).
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId, Existing) ->
     %% we use variant in order to determine whether it is actually the same spec;
     % for example, consider defspec(foo(X,Y), bar(X,Y)), defspec(foo(X,Y), bar(Y,X)).
     % we do not want to unify X = Y but also notice these are not the same specs.
         log_spec_already_exists(SpecId, Existing, indirection(OtherSpec))
-    ;
+     ;
         assert(spec_indirection(SpecId, OtherSpec)),
+        find_recursives(SpecId,OtherSpec),
         log(info,'Spec ~w defined.',[SpecId])).
 
 :- meta_predicate defspec_pred(+, 1).
