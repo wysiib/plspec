@@ -1,4 +1,5 @@
 # plspec
+Version 0.1
 
 Inspired by [clojure.spec](https://clojure.org/about/spec), *plspec* aims to provide similar support for describing valid data.
 
