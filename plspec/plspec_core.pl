@@ -1,4 +1,4 @@
-:- module(plspec_checker,
+:- module(plspec_core,
             %plspec predicates
            [enable_all_spec_checks/0,
             spec_pre/2, spec_post/3, spec_invariant/2,
