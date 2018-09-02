@@ -8,3 +8,4 @@
 *.pag
 *.pdf
 playground.pl
+test_for_bisect.pl
