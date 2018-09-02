@@ -15,7 +15,7 @@
             ]).
 :- use_module(plspec).
 :- use_module(validator).
-:- use_module(logger).
+:- use_module(plspec_logger).
 
 expansion(Head, Body, PreSpecs, PreSpecTypes,
           InvariantSpecOrEmpty, InvSpecTypes,

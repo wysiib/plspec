@@ -1,8 +1,7 @@
 :- module(validator, [spec_predicate/2, spec_predicate_recursive/4, spec_indirection/2, spec_connective/4, spec_basic/2,
                       spec_exists/1, spec_exists/2,
                       true/1, atom/2,
-                      valid/
-                      2, valid/3,
+                      valid/2, valid/3,
                       evaluate_spec_match/4,
                       list/4, compound/4, tuple/4,
                       spec_and/4, and/4, or/4

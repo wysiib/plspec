@@ -1,5 +1,5 @@
 :- module(prettyprinter, [pretty_print_error/1]).
-:- use_module(logger).
+:- use_module(plspec_logger).
 
 pretty_print_error(fail(postcondition_violated(matched_pre(Pre),
                                                violated_post(Post),
