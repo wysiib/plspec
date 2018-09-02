@@ -1,4 +1,4 @@
-:- module(plspec_checker,
+:- module(plspec_core,
             %plspec predicates
            [enable_all_spec_checks/0,
             spec_pre/2, spec_post/3, spec_invariant/2,
@@ -15,7 +15,7 @@
             ]).
 :- use_module(plspec).
 :- use_module(validator).
-:- use_module(logger).
+:- use_module(plspec_logger).
 
 expansion(Head, Body, PreSpecs, PreSpecTypes,
           InvariantSpecOrEmpty, InvSpecTypes,

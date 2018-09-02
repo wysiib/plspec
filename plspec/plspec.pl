@@ -17,7 +17,7 @@
 
 :- use_module(validator).
 :- use_module(prettyprinter).
-:- use_module(logger).
+:- use_module(plspec_logger).
 
 :- use_module(library(lists)).
 :- use_module(library(terms), [variant/2]).
