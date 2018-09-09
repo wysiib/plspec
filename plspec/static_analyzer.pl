@@ -1,13 +1,17 @@
 :-module(static_analyzer,[analyze_source/1]).
+:- use_module(library(pprint)).
 
-analyze_source(Src) :-
+analyze_source(Src,LobbyOut) :-
     process_source(Src,process_directs),
-    process_source(Src,abs_int).
+    empty_assoc(LobbyIn),
+    process_source(Src,abs_int(LobbyIn,LobbyOut)).
 
 process_source(Src,Goal) :-
     prolog_canonical_source(Src,CanSrc),
     prolog_open_source(CanSrc,In),
-    Process =.. [Goal,In],
+    Goal =.. [Name|Args],
+    ProcessAsList = [Name,In|Args],
+    Process =.. ProcessAsList,
     call_cleanup(Process,prolog_close_source(In)).
 
 
@@ -24,16 +28,16 @@ execute_directs(':-'(A)) :-
     !,call(A).
 execute_directs(_) :- !.
 
-abs_int(Stream) :-
+abs_int(Stream,LobbyIn,LobbyOut) :-
     prolog_read_source_term(Stream,Term,Expanded,[]),!,
     (Term = end_of_file
      ->
-         true
+         LobbyIn = LobbyOut
      ;
-         empty_assoc(Env),
-         analyze_term(Expanded,Env),!,
-         abs_int(Stream)).
-
+         empty_assoc(EnvIn),
+         analyze_term(Expanded,EnvIn,EnvOut),!,
+         put_assoc(Expanded,LobbyIn,EnvOut,LobbyBetween),
+         abs_int(Stream,LobbyBetween,LobbyOut)).
 
 find_specs_to_goal(Goal,Specs) :-
     name_with_module(Goal,FullName),
@@ -60,8 +64,8 @@ assoc_single_values([H|Args],Specs,EnvIn,EnvOut) :-
     assoc_single_values(Args,Specs,EnvWorking2,EnvOut).
 
 
-analyze_term(':-'(_),_StateIn) :- !.
-analyze_term(':-'(A,B),StateIn) :-
+analyze_term(':-'(_),StateIn,StateIn) :- !.
+analyze_term(':-'(A,B),StateIn,StateOut) :-
     write_condition(A,StateIn,State2),
     analyze_body(B,State2,StateOut),
     assoc_to_list(StateOut,Res),
