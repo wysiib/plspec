@@ -1,0 +1,14 @@
+i := 5
+if 5<10 do
+a := 5
+b := 1
+else
+a := 10
+b := 1
+done
+varAchtA := 8*a
+varZwei := 2
+print varAchtA
+print varZwei
+a := 5
+varJetztHatAWiederEinenWert := 10

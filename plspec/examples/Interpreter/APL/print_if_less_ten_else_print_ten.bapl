@@ -1,0 +1,7 @@
+x := 11
+x := 12
+if 12<10 do
+print x
+else
+print 10
+done

@@ -1,0 +1,4 @@
+x := 6
+if 6<10 do
+print x
+done

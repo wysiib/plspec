@@ -1,0 +1,16 @@
+x := 64
+y := 8
+print y
+y := 4096
+print y
+y := 128
+print y
+y := 960
+print y
+y := 68
+print y
+y := 225
+y := 50625
+print y
+y := 420
+print y
