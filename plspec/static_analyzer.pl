@@ -1,10 +1,11 @@
-:-module(static_analyzer,[analyze_source/1]).
+:-module(static_analyzer,[analyze_source/2]).
 :- use_module(library(pprint)).
 
 analyze_source(Src,LobbyOut) :-
     process_source(Src,process_directs),
     empty_assoc(LobbyIn),
-    process_source(Src,abs_int(LobbyIn,LobbyOut)).
+    process_source(Src,abs_int(LobbyIn,LobbyBetween)),
+    simplify_lobby(LobbyBetween,LobbyOut).
 
 process_source(Src,Goal) :-
     prolog_canonical_source(Src,CanSrc),
@@ -120,3 +121,33 @@ what_is_B((B,C)) :- !,
     what_is_B(C).
 what_is_B((B)) :-
    write("B: "), write(B),nl.
+
+simplify_lobby(LobbyIn,LobbyOut) :-
+    assoc_to_list(LobbyIn,LobbyList),
+    simplify_lobby_list(LobbyList,LobbyListNew),
+    list_to_assoc(LobbyListNew,LobbyOut).
+
+simplify_lobby_list([],[]) :- !.
+simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
+    assoc_to_list(Env,EnvList),
+    simplify_env(EnvList,EnvNewList),
+    list_to_assoc(EnvNewList,EnvNew),
+    simplify_lobby_list(T,TT).
+
+simplify_env([],[]) :- !.
+simplify_env([K-V|EnvIn],[K-NewV|EnvOut]) :-
+    simplify_list(V,NewV),
+    simplify_env(EnvIn,EnvOut).
+
+simplify_list([],[]) :- !.
+simplify_list([one_of([])|T],Res) :-
+    !,
+    simplify_list(T,Res).
+simplify_list([one_of(L)|T],[one_of(S)|Res]) :-
+    list_to_set(L,S),
+    simplify_list(T,Res).
+
+pretty_print([]) :- !.
+pretty_print([K-V|T]) :-
+    write("... "), write(K),write(" :   "), write(V), nl,
+    pretty_print(T).
