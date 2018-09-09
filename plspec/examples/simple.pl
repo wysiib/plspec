@@ -3,6 +3,8 @@
 :- enable_all_spec_checks.
 
 :- plspec:spec_pre(reverse/2,[list(X),list(X)]).
+:- plspec:spec_pre(reverse/2,[var,list(any)]).
+:- plspec:spec_pre(reverse/2,[list(any),var]).
 reverse(L,Rev) :-
     reverse(L,[],Rev).
 
@@ -17,4 +19,3 @@ create_palindrom(L,Palin) :-
     print("yo"),
     reverse(L,Rev),
     append(L,Rev,Palin).
-
