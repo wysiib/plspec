@@ -34,14 +34,14 @@ asserted_spec_invariant(Pred, Spec) :-
 
 
 check_ground(_Pred, Spec, _SpecType) :-
-    ground(Spec).
+    ground(Spec), !.
 check_ground(Pred, Spec, SpecType) :-
     \+ ground(Spec),
     log(info,'~w is not ground; got ~w in ~w. It is handled as a
             specific, but unknown spec.', [SpecType, Spec, Pred]).
 
 check_arity(_Pred, Spec, _SpecType, Arity) :-
-    length(Spec, Arity).
+    length(Spec, Arity), !.
 check_arity(Pred, Spec, SpecType, Arity) :-
     \+ length(Spec, Arity),
     log(error,'~w of ~w does not match in length!',[SpecType, Pred]),
