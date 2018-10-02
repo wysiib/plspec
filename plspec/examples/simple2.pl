@@ -7,7 +7,7 @@
 foo(A,B) :-
   bar(A,B).
 
-:- plspec:spec_pre(bar/2,[int,int]).
+:- plspec:spec_pre(bar/2,[int,number]).
 bar(A,B) :-
     B is A+2.
 
