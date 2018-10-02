@@ -2,47 +2,39 @@
 :- use_module(library(pprint)).
 
 analyze_source(Src,LobbyOut) :-
-    process_source(Src,process_directs),
     empty_assoc(LobbyIn),
-    process_source(Src,abs_int(LobbyIn,LobbyBetween)),
-    simplify_lobby(LobbyBetween,LobbyOut).
-
-process_source(Src,Goal) :-
     prolog_canonical_source(Src,CanSrc),
-    prolog_open_source(CanSrc,In),
-    Goal =.. [Name|Args],
-    ProcessAsList = [Name,In|Args],
-    Process =.. ProcessAsList,
-    call_cleanup(Process,prolog_close_source(In)).
+    prolog_open_source(CanSrc,Stream),
+    process_source(Stream,LobbyIn,LobbyBetween),
+    simplify_lobby(LobbyBetween, LobbyOut).
 
-
-process_directs(Stream) :-
-    prolog_read_source_term(Stream,Term,Expanded,[]),!,
-    (Term = end_of_file
-     ->
-         true
-     ;
-         execute_directs(Expanded),!,
-         process_directs(Stream)).
-
-execute_directs(':-'(A)) :-
-    !,call(A).
-execute_directs(_) :- !.
-
-abs_int(Stream,LobbyIn,LobbyOut) :-
-    prolog_read_source_term(Stream,Term,Expanded,[]),!,
+process_source(Stream,LobbyIn,LobbyOut) :-
+    prolog_read_source_term(Stream, Term, Expanded, []), !,
     (Term = end_of_file
      ->
          LobbyIn = LobbyOut
      ;
-         empty_assoc(EnvIn),
-         analyze_term(Expanded,EnvIn,EnvOut),!,
-         put_assoc(Expanded,LobbyIn,EnvOut,LobbyBetween),
-         abs_int(Stream,LobbyBetween,LobbyOut)).
+         process_term(Expanded,LobbyIn,LobbyBetween),
+         process_source(Stream,LobbyBetween,LobbyOut)
+    ).
 
-find_specs_to_goal(Goal,Specs) :-
-    name_with_module(Goal,FullName),
-    findall(Spec,asserted_spec_pre(FullName,Spec,_),Specs).
+process_term(':-'(A),Lobby,Lobby) :-
+    !, call(A).
+process_term(Expanded,LobbyIn,LobbyOut) :-
+    empty_assoc(EnvIn),
+    analyze_term(Expanded,EnvIn,EnvOut),!,
+    put_assoc(Expanded,LobbyIn,EnvOut,LobbyOut).
+
+analyze_term(':-'(A,B),StateIn,StateOut) :-
+    write_condition(A,StateIn,State2),
+    analyze_body(B,State2,StateOut).
+
+analyze_body((B,C),In,Out) :-
+    !,
+    write_condition(B,In,Between),
+    analyze_body(C,Between,Out).
+analyze_body((C),In,Out) :-
+    write_condition(C,In,Out).
 
 write_condition(Goal,EnvIn,EnvOut) :-
     Goal =.. [_|Args],
@@ -50,6 +42,11 @@ write_condition(Goal,EnvIn,EnvOut) :-
     find_specs_to_goal(Goal,Specs),
     get_assoc(Args,EnvWorking,L,Env2,[one_of(Specs)|L]),
     assoc_single_values(Args,Specs,Env2,EnvOut).
+
+
+find_specs_to_goal(Goal,Specs) :-
+    name_with_module(Goal,FullName),
+    findall(Spec,asserted_spec_pre(FullName,Spec,_),Specs).
 
 
 create_empty_value_if_not_exists(Key,Assoc,Assoc) :-
@@ -65,26 +62,46 @@ assoc_single_values([H|Args],Specs,EnvIn,EnvOut) :-
     assoc_single_values(Args,Specs,EnvWorking2,EnvOut).
 
 
-analyze_term(':-'(_),StateIn,StateIn) :- !.
-analyze_term(':-'(A,B),StateIn,StateOut) :-
-    write_condition(A,StateIn,State2),
-    analyze_body(B,State2,StateOut),
-    assoc_to_list(StateOut,Res),
-    write(A), write(": "), write(Res), nl, nl.
-
-analyze_body((B,C),In,Out) :- !,
-    write_condition(B,In,Between),
-    analyze_body(C,Between,Out).
-analyze_body((C),In,Out) :-
-    write_condition(C,In,Out).
-
-
 name_with_module(Compound,FullName) :-
     Compound =.. [Name|Args],
     length(Args,Arity),
     prolog_load_context(module,Module),
     FullName = Module:Name/Arity.
 
+
+
+simplify_lobby(LobbyIn,LobbyOut) :-
+    assoc_to_list(LobbyIn,LobbyList),
+    simplify_lobby_list(LobbyList,LobbyListNew),
+    list_to_assoc(LobbyListNew,LobbyOut).
+
+simplify_lobby_list([],[]) :- !.
+simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
+    assoc_to_list(Env,EnvList),
+    simplify_env(EnvList,EnvNewList),
+    list_to_assoc(EnvNewList,EnvNew),
+    simplify_lobby_list(T,TT).
+
+simplify_env([],[]) :- !.
+simplify_env([K-V|EnvIn],[K-NewV|EnvOut]) :-
+    simplify_list(V,NewV),
+    simplify_env(EnvIn,EnvOut).
+
+simplify_list([],[]) :- !.
+simplify_list([one_of([])|T],Res) :-
+    !,
+    simplify_list(T,Res).
+simplify_list([one_of(L)|T],[one_of(S)|Res]) :-
+    list_to_set(L,S),
+    simplify_list(T,Res).
+
+pretty_print([]) :- !.
+pretty_print([K-V|T]) :-
+    write("... "), write(K),write(" :   "), write(V), nl,
+    pretty_print(T).
+
+
+% expand needed to write module name in front of predicate
 do_expand(
         ':-'(spec_pre(Predicate/Arity, Spec)),
         Module,
@@ -116,38 +133,3 @@ user:term_expansion(A, B) :-
     prolog_load_context(module, Module),
     do_expand(A, Module, B).
 
-what_is_B((B,C)) :- !,
-    write("Y: "),write(B),nl,
-    what_is_B(C).
-what_is_B((B)) :-
-   write("B: "), write(B),nl.
-
-simplify_lobby(LobbyIn,LobbyOut) :-
-    assoc_to_list(LobbyIn,LobbyList),
-    simplify_lobby_list(LobbyList,LobbyListNew),
-    list_to_assoc(LobbyListNew,LobbyOut).
-
-simplify_lobby_list([],[]) :- !.
-simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
-    assoc_to_list(Env,EnvList),
-    simplify_env(EnvList,EnvNewList),
-    list_to_assoc(EnvNewList,EnvNew),
-    simplify_lobby_list(T,TT).
-
-simplify_env([],[]) :- !.
-simplify_env([K-V|EnvIn],[K-NewV|EnvOut]) :-
-    simplify_list(V,NewV),
-    simplify_env(EnvIn,EnvOut).
-
-simplify_list([],[]) :- !.
-simplify_list([one_of([])|T],Res) :-
-    !,
-    simplify_list(T,Res).
-simplify_list([one_of(L)|T],[one_of(S)|Res]) :-
-    list_to_set(L,S),
-    simplify_list(T,Res).
-
-pretty_print([]) :- !.
-pretty_print([K-V|T]) :-
-    write("... "), write(K),write(" :   "), write(V), nl,
-    pretty_print(T).
