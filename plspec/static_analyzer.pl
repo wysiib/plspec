@@ -6,7 +6,8 @@ analyze_source(Src,LobbyOut) :-
     prolog_canonical_source(Src,CanSrc),
     prolog_open_source(CanSrc,Stream),
     process_source(Stream,LobbyIn,LobbyBetween),
-    simplify_lobby(LobbyBetween, LobbyOut).
+    lobby_to_list(LobbyBetween, LobbyList),
+    simplify_lobby_list(LobbyList,LobbyOut).
 
 process_source(Stream,LobbyIn,LobbyOut) :-
     prolog_read_source_term(Stream, Term, Expanded, []), !,
@@ -34,6 +35,7 @@ analyze_body((B,C),In,Out) :-
     write_condition(B,In,Between),
     analyze_body(C,Between,Out).
 analyze_body((C),In,Out) :-
+
     write_condition(C,In,Out).
 
 write_condition(Goal,EnvIn,EnvOut) :-
@@ -45,7 +47,7 @@ write_condition(Goal,EnvIn,EnvOut) :-
 
 
 find_specs_to_goal(Goal,Specs) :-
-    name_with_module(Goal,FullName),
+    name_with_module(Goal,FullName),!,
     findall(Spec,asserted_spec_pre(FullName,Spec,_),Specs).
 
 
@@ -68,18 +70,18 @@ name_with_module(Compound,FullName) :-
     prolog_load_context(module,Module),
     FullName = Module:Name/Arity.
 
+lobby_to_list(Lobby,List) :-
+    assoc_to_list(Lobby,LobbyAsList),
+    env_to_list(LobbyAsList,List).
 
-
-simplify_lobby(LobbyIn,LobbyOut) :-
-    assoc_to_list(LobbyIn,LobbyList),
-    simplify_lobby_list(LobbyList,LobbyListNew),
-    list_to_assoc(LobbyListNew,LobbyOut).
+env_to_list([],[]) :- !.
+env_to_list([K-V|T],[K-W|S]) :-
+    assoc_to_list(V,W),
+    env_to_list(T,S).
 
 simplify_lobby_list([],[]) :- !.
 simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
-    assoc_to_list(Env,EnvList),
-    simplify_env(EnvList,EnvNewList),
-    list_to_assoc(EnvNewList,EnvNew),
+    simplify_env(Env,EnvNew),
     simplify_lobby_list(T,TT).
 
 simplify_env([],[]) :- !.
@@ -95,12 +97,18 @@ simplify_list([one_of(L)|T],[one_of(S)|Res]) :-
     list_to_set(L,S),
     simplify_list(T,Res).
 
-pretty_print([]) :- !.
-pretty_print([K-V|T]) :-
-    write("... "), write(K),write(" :   "), write(V), nl,
-    pretty_print(T).
 
+pretty_print_lobby([]) :- !.
+pretty_print_lobby([Term-Env|T]) :-
+    write("... "), write(Term), write(""), nl,
+    pretty_print_env(Env),
+    pretty_print_lobby(T).
 
+pretty_print_env([]) :- !.
+pretty_print_env([K-V|T]) :-
+    write("         "), write(K), write(" :    "), write(V),nl,
+    pretty_print_env(T).
+ 
 % expand needed to write module name in front of predicate
 do_expand(
         ':-'(spec_pre(Predicate/Arity, Spec)),
