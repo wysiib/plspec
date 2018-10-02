@@ -5,22 +5,22 @@ analyze_source(Src,LobbyOut) :-
     empty_assoc(LobbyIn),
     prolog_canonical_source(Src,CanSrc),
     prolog_open_source(CanSrc,Stream),
-    process_source(Stream,LobbyIn,LobbyBetween),
+    preprocess_source(Stream,Terms),
+    process_source(Terms,LobbyIn,LobbyBetween),
     lobby_to_list(LobbyBetween, LobbyList),
     simplify_lobby_list(LobbyList,LobbyOut).
 
-process_source(Stream,LobbyIn,LobbyOut) :-
-    prolog_read_source_term(Stream, Term, Expanded, []), !,
-    (Term = end_of_file
-     ->
-         LobbyIn = LobbyOut
-     ;
-         process_term(Expanded,LobbyIn,LobbyBetween),
-         process_source(Stream,LobbyBetween,LobbyOut)
-    ).
+preprocess_source(Stream, Out) :-
+    prolog_read_source_term(Stream, Term, Expanded, []),
+    (Term = end_of_file -> Out = []
+     ; (Expanded = ':-'(A) -> call(A), Out = Next ; Out = [Expanded|Next]), preprocess_source(Stream,Next)).
 
-process_term(':-'(A),Lobby,Lobby) :-
-    !, call(A).
+process_source([],Lobby,Lobby) :- !.
+process_source([Expanded|Terms],LobbyIn,LobbyOut) :-
+      process_term(Expanded,LobbyIn,LobbyBetween),
+      process_source(Terms,LobbyBetween,LobbyOut).
+
+
 process_term(Expanded,LobbyIn,LobbyOut) :-
     empty_assoc(EnvIn),
     analyze_term(Expanded,EnvIn,EnvOut),!,
