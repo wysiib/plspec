@@ -1,14 +1,15 @@
 :-module(static_analyzer,[analyze_source/2]).
 :- use_module(library(pprint)).
 
-analyze_source(Src,LobbyOut) :-
+analyze_source(Src,Res) :-
     empty_assoc(LobbyIn),
     prolog_canonical_source(Src,CanSrc),
     prolog_open_source(CanSrc,Stream),
     preprocess_source(Stream,Terms),
     process_source(Terms,LobbyIn,LobbyBetween),
     lobby_to_list(LobbyBetween, LobbyList),
-    simplify_lobby_list(LobbyList,LobbyOut).
+    simplify_lobby_list(LobbyList,LobbyOut),
+    analyze_domains(LobbyOut,Res).
 
 preprocess_source(Stream, Out) :-
     prolog_read_source_term(Stream, Term, Expanded, []),
@@ -19,7 +20,6 @@ process_source([],Lobby,Lobby) :- !.
 process_source([Expanded|Terms],LobbyIn,LobbyOut) :-
       process_term(Expanded,LobbyIn,LobbyBetween),
       process_source(Terms,LobbyBetween,LobbyOut).
-
 
 process_term(Expanded,LobbyIn,LobbyOut) :-
     empty_assoc(EnvIn),
@@ -35,7 +35,6 @@ analyze_body((B,C),In,Out) :-
     write_condition(B,In,Between),
     analyze_body(C,Between,Out).
 analyze_body((C),In,Out) :-
-
     write_condition(C,In,Out).
 
 write_condition(Goal,EnvIn,EnvOut) :-
@@ -47,9 +46,11 @@ write_condition(Goal,EnvIn,EnvOut) :-
 
 
 find_specs_to_goal(Goal,Specs) :-
+    name_with_module(Goal,user:(is)/2),!,
+    Specs = [[number,number]].
+find_specs_to_goal(Goal,Specs) :-
     name_with_module(Goal,FullName),!,
     findall(Spec,asserted_spec_pre(FullName,Spec,_),Specs).
-
 
 create_empty_value_if_not_exists(Key,Assoc,Assoc) :-
     get_assoc(Key,Assoc,_), !.
@@ -69,6 +70,15 @@ name_with_module(Compound,FullName) :-
     length(Args,Arity),
     prolog_load_context(module,Module),
     FullName = Module:Name/Arity.
+
+list_to_lobby(List,Lobby) :-
+    list_to_lobby_inner(List,Step1),
+    list_to_assoc(Step1,Lobby).
+
+list_to_lobby_inner([],[]) :-!.
+list_to_lobby_inner([K-V|T],[K-Assoc|Res]) :-
+    list_to_assoc(V,Assoc),
+    list_to_lobby_inner(T,Res).
 
 lobby_to_list(Lobby,List) :-
     assoc_to_list(Lobby,LobbyAsList),
@@ -108,7 +118,12 @@ pretty_print_env([]) :- !.
 pretty_print_env([K-V|T]) :-
     write("         "), write(K), write(" :    "), write(V),nl,
     pretty_print_env(T).
- 
+
+% analyze and calculate the domains of the predicates
+analyze_domains(LobbyAsList,Res) :-
+    Res = LobbyAsList.
+
+
 % expand needed to write module name in front of predicate
 do_expand(
         ':-'(spec_pre(Predicate/Arity, Spec)),
