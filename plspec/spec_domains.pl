@@ -1,9 +1,12 @@
 :- module(spec_domains,[union/3, intersect/3]).
 
 
+child_parent(int,integer).
 child_parent(integer,number).
 child_parent(float,number).
 child_parent(atom,atomic).
+child_parent(atom(X),atom).
+child_parent(same(X),atom(X)).
 child_parent(number,atomic).
 child_parent(atomic,ground).
 child_parent(atomic,nonvar).
@@ -11,6 +14,11 @@ child_parent(ground,nonvar).
 
 child_parent(nonvar,any).
 child_parent(var,any).
+
+child_parent(list(X),list(Y)) :-
+    child_parent(X,Y).
+child_parent(list(_),any).
+
 
 ancestor(Ancestor,Me) :-
     child_parent(Me,Ancestor).
