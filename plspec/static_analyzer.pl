@@ -69,10 +69,10 @@ create_empty_value_if_not_exists(Key,Assoc,NewAssoc) :-
 
 assoc_single_values([],_,Env,Env) :- !.
 assoc_single_values([H|Args],Specs,EnvIn,EnvOut) :-
-    maplist(nth0(0),Specs,SpecsForH),
+    maplist(nth0(0),Specs,SpecsForH,RestSpecs),
     create_empty_value_if_not_exists(H,EnvIn,EnvWorking),
     get_assoc(H,EnvWorking,L,EnvWorking2,[one_of(SpecsForH)|L]),
-    assoc_single_values(Args,Specs,EnvWorking2,EnvOut).
+    assoc_single_values(Args,RestSpecs,EnvWorking2,EnvOut).
 
 
 name_with_module(Compound,FullName) :-
