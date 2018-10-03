@@ -1,5 +1,6 @@
 :-module(static_analyzer,[analyze_source/2]).
 :- use_module(library(pprint)).
+:- use_module(spec_domains,[simplify_and/2]).
 
 analyze_source(Src,Res) :-
     empty_assoc(LobbyIn),
@@ -107,7 +108,8 @@ simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
 simplify_env([],[]) :- !.
 simplify_env([K-V|EnvIn],[K-NewV|EnvOut]) :-
     check_if_key_is_var(K),!,
-    simplify_list(V,NewV),
+    simplify_list(V,NewV1),
+    simplify_and(NewV1,NewV),
     simplify_env(EnvIn,EnvOut).
 simplify_env([_-_|EnvIn],EnvOut) :-
     simplify_env(EnvIn,EnvOut).

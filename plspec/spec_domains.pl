@@ -1,4 +1,4 @@
-:- module(spec_domains,[union/3, intersect/3]).
+:- module(spec_domains,[union/3, intersect/3, simplify_and/2]).
 
 
 child_parent(int,integer).
@@ -55,12 +55,21 @@ intersect(A,B,A) :-
     ancestor(B,A), !.
 intersect(A,B,B) :-
     ancestor(A,B), !.
-intersect(A,B,empty) :-
+intersect(A,B,C) :-
+    A \== B,
     not(ancestor(A,B)),
-    not(ancestor(B,A)).
+    not(ancestor(B,A)),!,
+    C = empty.
 
 
+
+intersect_elem_with_list(A,[H|L],[P|Res]) :-
+    is_list(A), is_list(H),!,
+    maplist(intersect,A,H,P),
+    intersect_elem_with_list(A,L,Res).
 intersect_elem_with_list(_,[],[]) :- !.
+intersect_elem_with_list(A,[A|L],[A|Res]) :- !,
+    intersect_elem_with_list(A,L,Res).
 intersect_elem_with_list(A,[H|L],Res) :-
     intersect(A,H,empty),!,
     intersect_elem_with_list(A,L,Res).
@@ -110,5 +119,3 @@ simplify_or([A|Others],[H|T],Acc,Res) :- % H schluckt A
 simplify_or(L,[H|T],Acc,Res) :-
     simplify_or(L,T,[H|Acc],Res).
 
-
-%% Arithmetic
