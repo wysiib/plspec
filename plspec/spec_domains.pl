@@ -9,6 +9,9 @@ child_parent(atomic,ground).
 child_parent(atomic,nonvar).
 child_parent(ground,nonvar).
 
+child_parent(nonvar,any).
+child_parent(var,any).
+
 ancestor(Ancestor,Me) :-
     child_parent(Me,Ancestor).
 ancestor(Ancestor,Me) :-
