@@ -1,4 +1,4 @@
-:- module(spec_domains,[union/3, intersect/3, get_type_of_number/2]).
+:- module(spec_domains,[union/3, intersect/3]).
 
 
 child_parent(integer,number).
