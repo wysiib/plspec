@@ -37,20 +37,30 @@ analyze_body((B,C),In,Out) :-
 analyze_body((C),In,Out) :-
     write_condition(C,In,Out).
 
+
 write_condition(Goal,EnvIn,EnvOut) :-
     Goal =.. [_|Args],
+    length(Args,Size),
+    find_specs_to_goal(Goal,Specs,Size),
     create_empty_value_if_not_exists(Args,EnvIn,EnvWorking),
-    find_specs_to_goal(Goal,Specs),
     get_assoc(Args,EnvWorking,L,Env2,[one_of(Specs)|L]),
     assoc_single_values(Args,Specs,Env2,EnvOut).
+     
 
+create_list_of(_,0,[]) :- !.
+create_list_of(A,Size,[A|L]) :-
+    N is Size-1,
+    create_list_of(A,N,L).
 
-find_specs_to_goal(Goal,Specs) :-
+find_specs_to_goal(Goal,Specs,_) :-
     name_with_module(Goal,user:(is)/2),!,
     Specs = [[number,number]].
-find_specs_to_goal(Goal,Specs) :-
+find_specs_to_goal(Goal,Specs,Size) :-
     name_with_module(Goal,FullName),!,
-    findall(Spec,asserted_spec_pre(FullName,Spec,_),Specs).
+    (setof(Spec,asserted_spec_pre(FullName,Spec,_),Specs)
+     -> true
+     ;  create_list_of(any,Size,L),
+        Specs = [L]).
 
 create_empty_value_if_not_exists(Key,Assoc,Assoc) :-
     get_assoc(Key,Assoc,_), !.
@@ -96,8 +106,17 @@ simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
 
 simplify_env([],[]) :- !.
 simplify_env([K-V|EnvIn],[K-NewV|EnvOut]) :-
+    check_if_key_is_var(K),!,
     simplify_list(V,NewV),
     simplify_env(EnvIn,EnvOut).
+simplify_env([_-_|EnvIn],EnvOut) :-
+    simplify_env(EnvIn,EnvOut).
+
+check_if_key_is_var(K) :-
+    is_list(K),!,
+    foreach(member(X,K),var(X)).
+check_if_key_is_var(K) :-
+    var(K).
 
 simplify_list([],[]) :- !.
 simplify_list([one_of([])|T],Res) :-
