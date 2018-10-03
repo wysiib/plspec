@@ -14,3 +14,10 @@ bar(A,B) :-
 
 h(A,B) :-
     foo(A,B).
+
+g(A) :-
+    A is 2.
+
+f(X) :-
+    foo(3,B),
+    X = B.
