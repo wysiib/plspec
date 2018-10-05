@@ -3,6 +3,7 @@
 :- plspec:enable_all_spec_checks.
 
 :- plspec:spec_pre(foo/2,[number,number]).
+:- plspec:spec_pre(foo/2,[number,number]).
 :- plspec:spec_pre(foo/2,[atom,atom]).
 foo(A,B) :-
   bar(A,B).
