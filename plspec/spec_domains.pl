@@ -63,10 +63,11 @@ intersect(A,B,C) :-
 
 
 
-intersect_elem_with_list(A,[H|L],[P|Res]) :-
+intersect_elem_with_list(A,[H|L],Res) :-
     is_list(A), is_list(H),!,
     maplist(intersect,A,H,P),
-    intersect_elem_with_list(A,L,Res).
+    (member(empty,P) -> Res = Next ; Res = [P|Next]),
+    intersect_elem_with_list(A,L,Next).
 intersect_elem_with_list(_,[],[]) :- !.
 intersect_elem_with_list(A,[A|L],[A|Res]) :- !,
     intersect_elem_with_list(A,L,Res).
