@@ -3,14 +3,24 @@
 :- use_module(spec_domains,[simplify_and/2]).
 
 analyze_source(Src,Res) :-
-    empty_assoc(LobbyIn),
     prolog_canonical_source(Src,CanSrc),
     prolog_open_source(CanSrc,Stream),
     preprocess_source(Stream,Terms),
+    create_lobby(LobbyIn),
     process_source(Terms,LobbyIn,LobbyBetween),
     lobby_to_list(LobbyBetween, LobbyList),
     simplify_lobby_list(LobbyList,LobbyOut),
     analyze_domains(LobbyOut,Res).
+
+create_lobby(Lobby) :-
+    empty_assoc(Lobby), !.
+    %empty_assoc(Lobby1),
+    %empty_assoc(Pre),
+    %empty_assoc(Post),
+    %empty_assoc(Inv),
+    %put_assoc(pre,Lobby1,Pre,Lobby2),
+    %put_assoc(post,Lobby2,Post,Lobby3),
+    %put_assoc(inv,Lobby3,Inv,Lobby).
 
 preprocess_source(Stream, Out) :-
     prolog_read_source_term(Stream, Term, Expanded, []),
@@ -46,7 +56,6 @@ write_condition(Goal,EnvIn,EnvOut) :-
     create_empty_value_if_not_exists(Args,EnvIn,EnvWorking),
     get_assoc(Args,EnvWorking,L,Env2,[one_of(Specs)|L]),
     assoc_single_values(Args,Specs,Env2,EnvOut).
-     
 
 create_list_of(_,0,[]) :- !.
 create_list_of(A,Size,[A|L]) :-
@@ -55,7 +64,7 @@ create_list_of(A,Size,[A|L]) :-
 
 find_specs_to_goal(Goal,Specs,_) :-
     name_with_module(Goal,user:(is)/2),!,
-    Specs = [[number,number]].
+    Specs = [[number,number],[var,number]].
 find_specs_to_goal(Goal,Specs,Size) :-
     name_with_module(Goal,FullName),!,
     (setof(Spec,asserted_spec_pre(FullName,Spec,_),Specs)
