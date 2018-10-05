@@ -38,29 +38,60 @@ process_term(Expanded,LobbyIn,LobbyOut) :-
     put_assoc(Expanded,LobbyIn,EnvOut,LobbyOut).
 
 analyze_term(':-'(A,B),StateIn,StateOut) :-
-    write_condition(A,StateIn,State2),
-    analyze_body(B,State2,StateOut).
+    collect_pre_specs(A,StateIn,State2), % initial pre specs
+    % gehe durch den Body und checke, ob die Pre Specs ok sind
+    body_to_list(B,Body),
+    analyze_body(Body,State2,StateOut).
 
-analyze_body((B,C),In,Out) :-
-    !,
-    write_condition(B,In,Between),
-    analyze_body(C,Between,Out).
-analyze_body((C),In,Out) :-
-    write_condition(C,In,Out).
+analyze_body([],State,State) :- !.
+analyze_body([H|T],StateIn,StateOut) :-
+    % Berechne State mit Pre Bedingung
+    collect_pre_specs(H,StateIn,State2),
+    % Überprüfe, ob der StateIn eine Pre Bedingung erfüllt.
+    valid_state(State2),
+    % Berechne den State nach dem Call
+    interfere_domain_after_call(H,State2,State3),
+    % Mache weiter mit dem Rest
+    valid_state(State3),
+    analyze_body(T,State3,StateOut).
 
 
-write_condition(Goal,EnvIn,EnvOut) :-
+valid_state(_State) :-
+    true.
+
+body_to_list((B,C),[B|T]) :- !,
+    body_to_list(C,T).
+body_to_list((C),[C]) :- !.
+
+
+interfere_domain_after_call(Goal,EnvIn,EnvOut) :-
+    Goal =.. [_|Args],
+    length(Args,Size),
+    find_specs_to_goal(Goal,SpecsFound,Size),
+    maplist(replace_var_through_any,SpecsFound,Specs),
+    create_empty_value_if_not_exists(Args,EnvIn,EnvWorking),
+    get_assoc(Args,EnvWorking,OldDomain,Env2,NewDomain),
+    simplify_and([one_of(Specs)|OldDomain],NewDomain),
+    assoc_single_values(Args,Specs,Env2,EnvOut).
+
+collect_pre_specs(Goal,EnvIn,EnvOut) :-
     Goal =.. [_|Args],
     length(Args,Size),
     find_specs_to_goal(Goal,Specs,Size),
     create_empty_value_if_not_exists(Args,EnvIn,EnvWorking),
-    get_assoc(Args,EnvWorking,L,Env2,[one_of(Specs)|L]),
+    get_assoc(Args,EnvWorking,OldDomain,Env2,NewDomain),
+    simplify_and([one_of(Specs)|OldDomain],NewDomain),
     assoc_single_values(Args,Specs,Env2,EnvOut).
 
 create_list_of(_,0,[]) :- !.
 create_list_of(A,Size,[A|L]) :-
     N is Size-1,
     create_list_of(A,N,L).
+
+find_specs_to_goal(Goal,Specs) :-
+    Goal =.. [_|Args],
+    length(Args,Size),
+    find_specs_to_goal(Goal,Specs,Size).
 
 find_specs_to_goal(Goal,Specs,_) :-
     name_with_module(Goal,user:(is)/2),!,
@@ -72,6 +103,17 @@ find_specs_to_goal(Goal,Specs,Size) :-
      ;  create_list_of(any,Size,L),
         Specs = [L]).
 
+find_spec_and_transform(FullName,Spec) :-
+    asserted_spec_pre(FullName,SpecFound,_),
+    replace_var_through_any(SpecFound,Spec).
+
+replace_var_through_any([],[]) :- !.
+replace_var_through_any([var|T],[any|R]) :-
+    !, replace_var_through_any(T,R).
+replace_var_through_any([H|T],[H|R]) :-
+    replace_var_through_any(T,R).
+
+
 create_empty_value_if_not_exists(Key,Assoc,Assoc) :-
     get_assoc(Key,Assoc,_), !.
 create_empty_value_if_not_exists(Key,Assoc,NewAssoc) :-
@@ -81,7 +123,8 @@ assoc_single_values([],_,Env,Env) :- !.
 assoc_single_values([H|Args],Specs,EnvIn,EnvOut) :-
     maplist(nth0(0),Specs,SpecsForH,RestSpecs),
     create_empty_value_if_not_exists(H,EnvIn,EnvWorking),
-    get_assoc(H,EnvWorking,L,EnvWorking2,[one_of(SpecsForH)|L]),
+    get_assoc(H,EnvWorking,OldDomain,EnvWorking2,NewDomain),
+    simplify_and([one_of(SpecsForH)|OldDomain],NewDomain),
     assoc_single_values(Args,RestSpecs,EnvWorking2,EnvOut).
 
 
