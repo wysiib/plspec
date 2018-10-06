@@ -190,23 +190,28 @@ env_to_list([K-V|T],[K-W|S]) :-
 
 simplify_lobby_list([],[]) :- !.
 simplify_lobby_list([K-Env|T],[K-EnvNew|TT]) :-
-    simplify_env(Env,EnvNew),
+    simplify_env(Env,EnvNew,K),
     simplify_lobby_list(T,TT).
 
-simplify_env([],[]) :- !.
-simplify_env([K-V|EnvIn],[K-NewV|EnvOut]) :-
+simplify_env([],[],_) :- !.
+simplify_env([K-V|EnvIn],[K-NewV|EnvOut],Pred) :-
     check_if_key_is_var(K),!,
-    simplify_list(V,NewV1),
+    simplify_list(V,NewV1,Pred,K),
     simplify_and(NewV1,NewV),
-    simplify_env(EnvIn,EnvOut).
-simplify_env([_-_|EnvIn],EnvOut) :-
-    simplify_env(EnvIn,EnvOut).
+    simplify_env(EnvIn,EnvOut,Pred).
+simplify_env([_-_|EnvIn],EnvOut,Pred) :-
+    simplify_env(EnvIn,EnvOut,Pred).
 
 check_if_key_is_var(K) :-
     is_list(K),!,
     foreach(member(X,K),var(X)).
 check_if_key_is_var(K) :-
     var(K).
+
+simplify_list([],[],Pred,Var) :-
+    log(error,"No valid domain found for ~w in ~w",[Var,Pred]), !.
+simplify_list(L,Res,_,_) :-
+    simplify_list(L,Res).
 
 simplify_list([],[]) :- !.
 simplify_list([one_of([])|T],Res) :-
