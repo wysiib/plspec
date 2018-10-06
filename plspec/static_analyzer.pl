@@ -12,7 +12,11 @@ analyze_source(Src,Res) :-
     process_source(Terms,LobbyIn,LobbyBetween),
     lobby_to_list(LobbyBetween, LobbyList),
     simplify_lobby_list(LobbyList,LobbyOut),
-    analyze_domains(LobbyOut,Res).
+    analyze_domains(LobbyOut,Res),
+    clean_up.
+
+clean_up :-
+    retractall(asserted_spec_pre(_,_,_)).
 
 create_lobby(Lobby) :-
     empty_assoc(Lobby), !.
