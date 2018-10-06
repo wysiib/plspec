@@ -43,27 +43,43 @@ process_term(Expanded,LobbyIn,LobbyOut) :-
     analyze_term(Expanded,EnvIn,EnvOut),!,
     put_assoc(Expanded,LobbyIn,EnvOut,LobbyOut).
 
+
 analyze_term(':-'(A,B),StateIn,StateOut) :-
     collect_pre_specs(A,StateIn,State2), % initial pre specs
-    % gehe durch den Body und checke, ob die Pre Specs ok sind
     body_to_list(B,Body),
-    analyze_body(Body,State2,StateOut).
+    analyze_body(Body,State2,StateOut,A).
 
-analyze_body([],State,State) :- !.
-analyze_body([H|T],StateIn,StateOut) :-
+analyze_term(A,StateIn,StateOut) :-
+    collect_pre_specs(A,StateIn,StateOut).
+
+analyze_body([],State,State,_) :- !.
+analyze_body([H|T],StateIn,StateOut,Pred) :-
     % Berechne State mit Pre Bedingung
     collect_pre_specs(H,StateIn,State2),
     % Überprüfe, ob der StateIn eine Pre Bedingung erfüllt.
-    valid_state(State2),
-    % Berechne den State nach dem Call
-    interfere_domain_after_call(H,State2,State3),
-    % Mache weiter mit dem Rest
-    valid_state(State3),
-    analyze_body(T,State3,StateOut).
+    (valid_state(State2)
+     ->
+         interfere_domain_after_call(H,State2,State3),
+         (valid_state(State3)
+          ->
+              analyze_body(T,State3,StateOut,Pred)
+          ;
+              log(error,"~w: After call of ~w the state is not valid",[Pred, H]),
+              StateOut = State3
+         )
+     ;
+         log(error,"~w: No pre specs fullfilled for ~w",[Pred, H]),
+         StateOut = State2
+    ).
 
+valid_state(State) :-
+    assoc_to_list(State,List),
+    valid_state_aux(List).
 
-valid_state(_State) :-
-    true.
+valid_state_aux([]) :- !.
+valid_state_aux([_-[]|_]) :- !, fail.
+valid_state_aux([_|T]) :-
+    valid_state_aux(T).
 
 body_to_list((B,C),[B|T]) :- !,
     body_to_list(C,T).
