@@ -116,6 +116,10 @@ find_specs_to_goal(Goal,Specs) :-
     find_specs_to_goal(Goal,Specs,Size).
 
 find_specs_to_goal(Goal,Specs,_) :-
+    name_with_module(Goal,user:(=)/2),
+    Goal =.. [_,Left,Right],
+    find_specs_of_assignment(Left,Right,Specs).
+find_specs_to_goal(Goal,Specs,_) :-
     name_with_module(Goal,user:(is)/2),!,
     Specs = [[number,number],[var,number]].
 find_specs_to_goal(Goal,Specs,Size) :-
@@ -124,6 +128,16 @@ find_specs_to_goal(Goal,Specs,Size) :-
      -> true
      ;  create_list_of(any,Size,L),
         Specs = [L]).
+
+find_specs_of_assignment(_Left, Right, [[any, Type]]) :-
+    ground(Right),!,
+    type_of(Right,Type).
+find_specs_of_assignment(Left, _Right, [[Type, any]]) :-
+    ground(Left), !,
+    type_of(Left,Type).
+find_specs_of_assignment(_, _, [[any, any]]).
+
+
 
 find_spec_and_transform(FullName,Spec) :-
     asserted_spec_pre(FullName,SpecFound,_),
