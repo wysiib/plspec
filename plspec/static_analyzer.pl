@@ -1,7 +1,9 @@
 :-module(static_analyzer,[analyze_source/2]).
 :- use_module(library(pprint)).
-:- use_module(spec_domains,[simplify_and/2]).
+:- use_module(plspec_logger,[log/3,log/2,set_loglevel/1]).
+:- use_module(spec_domains,[simplify_and/2, type_of/2]).
 
+:- set_loglevel(error).
 analyze_source(Src,Res) :-
     prolog_canonical_source(Src,CanSrc),
     prolog_open_source(CanSrc,Stream),
