@@ -1,11 +1,11 @@
-:- module(spec_domains,[union/3, intersect/3, simplify_and/2]).
+:- module(spec_domains,[union/3, intersect/3, simplify_and/2, type_of/2]).
 
 
 child_parent(int,integer).
 child_parent(integer,number).
 child_parent(float,number).
 child_parent(atom,atomic).
-child_parent(atom(X),atom).
+child_parent(atom(_),atom).
 child_parent(same(X),atom(X)).
 child_parent(number,atomic).
 child_parent(atomic,ground).
@@ -120,3 +120,25 @@ simplify_or([A|Others],[H|T],Acc,Res) :- % H schluckt A
 simplify_or(L,[H|T],Acc,Res) :-
     simplify_or(L,T,[H|Acc],Res).
 
+type_of(A,integer) :-
+    ground(A),
+    integer(A), !.
+type_of(A,float) :-
+    ground(A),
+    float(A), !.
+type_of(A,atom) :-
+    ground(A),
+    atom(A), !.
+type_of(A,number) :-
+    ground(A),
+    number(A), !.
+type_of(A,atomic) :-
+    ground(A),
+    atomic(A), !.
+type_of(A,ground) :-
+    ground(A), !.
+type_of(A,nonvar) :-
+    nonvar(A), !.
+type_of(A,var) :-
+    var(A), !.
+type_of(_,any).
