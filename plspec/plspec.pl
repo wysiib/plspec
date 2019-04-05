@@ -37,8 +37,7 @@ check_ground(_Pred, Spec, _SpecType) :-
     ground(Spec).
 check_ground(Pred, Spec, SpecType) :-
     \+ ground(Spec),
-    log(info,'~w is not ground; got ~w in ~w. It is handled as a
-            specific, but unknown spec.', [SpecType, Spec, Pred]).
+    log(info,'~w is not ground; got ~w in ~w. It is handled as a specific, but unknown spec.', [SpecType, Spec, Pred]).
 
 check_arity(_Pred, Spec, _SpecType, Arity) :-
     length(Spec, Arity).
