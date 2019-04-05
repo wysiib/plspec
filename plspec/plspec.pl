@@ -7,9 +7,6 @@
           plspec_some/3, error_not_matching_any_pre/3,
           enable_spec_check/1, enable_all_spec_checks/0,
           set_error_handler/1,
-          spec_and/4,
-          list/4,
-          valid/2,
           asserted_spec_pre/3, asserted_spec_invariant/3,
           asserted_spec_invariant/4, asserted_spec_post/5,
           check_predicate/1 % called by term expander
@@ -17,7 +14,7 @@
 
 :- use_module(validator).
 :- use_module(prettyprinter).
-:- use_module(logger).
+:- use_module(plspec_logger).
 
 :- use_module(library(lists)).
 :- use_module(library(terms), [variant/2]).

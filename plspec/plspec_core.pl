@@ -1,6 +1,7 @@
-:- module(plspec_checker,
+:- module(plspec_core,
             %plspec predicates
            [enable_all_spec_checks/0,
+            enable_spec_check/1,
             spec_pre/2, spec_post/3, spec_invariant/2,
             defspec/2, defspec_pred/2,
             defspec_pred_recursive/4, defspec_connective/4,
@@ -11,11 +12,13 @@
             %multifile:
             asserted_spec_pre/3, asserted_spec_invariant/3,
             asserted_spec_invariant/4, asserted_spec_post/5,
-            check_predicate/1
+            check_predicate/1,
+
+            set_error_handler/1
             ]).
 :- use_module(plspec).
 :- use_module(validator).
-:- use_module(logger).
+:- use_module(plspec_logger).
 
 expansion(Head, Body, PreSpecs, PreSpecTypes,
           InvariantSpecOrEmpty, InvSpecTypes,

@@ -1,4 +1,4 @@
-:- module(logger, [log/3, log/2, set_loglevel/1, possible_loglevel/1]).
+:- module(plspec_logger, [log/3, log/2, set_loglevel/1, possible_loglevel/1]).
 
 possible_loglevel(info).
 possible_loglevel(warning).
