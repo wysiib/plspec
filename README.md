@@ -91,7 +91,9 @@ We have implemented a few specs:
 
 * `any` allows any value
 * `atomic` allows atomic values
+* `atom` allows any atom
 * `integer` (or `int` for short) allows integer values
+* `float` allows float values
 * `number` allows any kind of numbers
 * `var` allows variables
 * `ground` allows ground values (be careful if you use it in an invariant! There, it is equivalent to `any`.)
@@ -106,6 +108,33 @@ There are building blocks to construct more complicated specs:
 * `one_of(X)` also takes a list `X` of other specs. Valid values have to conform to at least one of the specs. For example, `one_of([int, atomic])` will accept `3` and `foo`, but will not allow `[1]`.
 
 
+### Unbound specs
+
+Sometime you want to be more specific than `any`, but not as specific as `float`. For these cases you can use unbound specs as in the following example:
+
+You want to reverse a list and you want to make sure that the order really changed. Look at the following implementation of `reverse/2`:
+
+```
+reverse_order([H|T],S) :-
+    reverse_order(T,[H],S).
+
+reverse_order([],Res,Res) :- !.
+reverse_order([H|T],Buffer,S) :-
+    reverse_order(T,[H|Buffer],S).
+```
+Now you want to make sure if the spec `tuple([X,Y])` holds for the first argument, `tuple([Y,X])`should be true for the second argument after the predicated succeded. This information is more specific than `tuple([any, any])` and conveniently machtes a lot of cases which you therefore don't have to add manually like `tuple([integer, atomic])`.
+Attention: Some values are excluded from unifying with unbound specs. These are `ground`, `var`, `nonvar` and `any`, for the obvious reason that our specs would be always true if we allow them.
+
+The unbound spec is unified with the most general spec. Look at the following predicate:
+```
+:- spec_pre(my_member/2,[X,list(X)]).
+my_member(E,[E|_]).
+my_member(E,[_|T]) :-
+    my_member(E,T).
+```
+The call `my_member(a, [1,2,3])` would not cause plspec to throw an type error, because with `X = atomic` the spec succeedes.
+
+
 ### define your own specs
 
 We had extensibility in mind when we wrote *plspec*. Of course, you can write your own specs and I will tell you how:
@@ -117,7 +146,7 @@ We had extensibility in mind when we wrote *plspec*. Of course, you can write yo
 
 ```
 :- defspec(tree(X), one_of([compound(node(tree(X), X, tree(X))),
-                            compound(empty)])).
+                            atom(empty)])).
 ```
 
 And we're done already. A tree either is empty, or a term of arity 3 where the left and right arguments are trees themselves and the center argument is a value of the given type.
@@ -154,19 +183,35 @@ false.
 false.
 ```
 
+You can also ask `valid/2` for specs that match the given value:
+```
+?- valid(X, 1).
+X = integer;
+X = atomic;
+X = number;
+?- valid(tree(X), node(empty, 1, empty)).
+X = integer;
+X = atomic;
+X = number;
+```
+To be not to general, `var`, `ground`, `nonvar` and `any`are excluded for possible values of `X`.
+
+
 #### defspec_pred/2
 
 Sometimes you want to check a value yourself. I get that.
 That's where you use `defspec_pred/2`.
 
 ```
-int(even, X) :- 0 is X mod 2.
-int(odd, X) :- 1 is X mod 2.
+int(even, X) :- integer(X), 0 is X mod 2.
+int(odd, X) :- integer(X), 1 is X mod 2.
 :- defspec_pred(int(X), int(X)).
 ```
 
 Then, you can define whether your integers are even or odd!
 However, you should ensure that these predicates *NEVER* bind any variables. 
+Also wnsure that your predicates always run correctly. The guard `integer(X)` is needed,
+because otherwise it could cause plspec to crash, if your spec_pred is checked again an unbound variable.
 
 ```
 ?- valid(int(even), 0). 
