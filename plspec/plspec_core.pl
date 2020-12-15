@@ -97,6 +97,7 @@ should_expand(A, F, Module, Arity) :-
 
 expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
     should_expand(A, F, Module, Arity), !,
+    log(debug,'expansion of clause of ~w',[A]),
     findall(
         PreSpec,
         plspec:asserted_spec_pre(Module:F/Arity,PreSpec, _),PreSpecs),
@@ -166,10 +167,10 @@ do_expand(
     Module,
     ':-'(plspec:spec_post(Module:Predicate/Arity, SpecPre, SpecPost))).
 do_expand(':-'(A, B), Module, ':-'(NA, NB)) :- !,
-  log(debug,'do_expand of ~w',[A]),
+  %log(debug,'do_expand of ~w',[A]),
   expandeur(':-'(A, B), Module, ':-'(NA, NB)).
 do_expand(A, Module, ':-'(NA, NB)) :-
-  log(debug,'do_expand of ~w',[A]),
+  %log(debug,'do_expand of ~w',[A]),
   expandeur(':-'(A, true), Module, ':-'(NA, NB)).
 do_expand(A, _Module, A).
 
@@ -181,7 +182,7 @@ user:term_expansion(A, B) :-
 
 :- multifile user:term_expansion/6.
 user:term_expansion(Term1, Layout1, Ids, Term2, Layout1, [plspec_token|Ids]) :-
-  log(debug,'term-expansion SICTUS of ~w', [Term1]),
+  %log(debug,'term-expansion SICTUS of ~w', [Term1]),
   nonmember(plspec_token, Ids),
   prolog_load_context(module, Module),
   do_expand(Term1, Module, Term2).
