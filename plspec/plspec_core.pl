@@ -10,8 +10,8 @@
             %logger
             set_loglevel/1, log/3,
             %multifile:
-            asserted_spec_pre/3, asserted_spec_invariant/3,
-            asserted_spec_invariant/4, asserted_spec_post/5,
+            asserted_spec_pre/5, asserted_spec_invariant/3,
+            asserted_spec_invariant/4, asserted_spec_post/7,
             check_predicate/1,
 
             set_error_handler/1
@@ -83,37 +83,37 @@ expansion(Head, Body, PreSpecs, PreSpecTypes,
     ).
 
 
-should_expand(A, F, Module, Arity) :-
+should_expand(A, Module, F, Arity) :-
+    plspec:check_predicate(A), % check if the predicate is marked for expansion
+     % true if enable_spec_check is executed
     functor(A,F,Arity),
     (
-        plspec:asserted_spec_pre(Module:F/Arity, _, _)
-    ;
-        plspec:asserted_spec_invariant(Module:F/Arity, _, _)
-    ;
-        plspec:asserted_spec_post(Module:F/Arity, _, _, _, _)
-    ),
-    !,
-    plspec:check_predicate(F/Arity).
+        % TO DO: indexing occurs on :/2 !!!!
+          plspec:asserted_spec_pre(F,Arity,Module, _, _) -> true
+        ; plspec:asserted_spec_invariant(Module:F/Arity, _, _) -> true
+        ; plspec:asserted_spec_post(F,Arity,Module, _, _, _, _) -> true
+    ).
+
 
 expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
-    should_expand(A, F, Module, Arity), !,
+    should_expand(A, Module, F, Arity), !,
     log(debug,'expansion of clause of ~w',[A]),
     findall(
         PreSpec,
-        plspec:asserted_spec_pre(Module:F/Arity,PreSpec, _),PreSpecs),
+        plspec:asserted_spec_pre(F,Arity,Module,PreSpec, _),PreSpecs),
     findall(
         InvSpec,
         plspec:asserted_spec_invariant(Module:F/Arity,InvSpec, _),
         InvariantSpecOrEmpty),
     findall(
         PreSpec2,
-        plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_,_,_),PrePostSpecs),
+        plspec:asserted_spec_post(F,Arity,Module,PreSpec2,_,_,_),PrePostSpecs),
     findall(
         PostSpec,
-        plspec:asserted_spec_post(Module:F/Arity,_,PostSpec,_,_),PostSpecs),
+        plspec:asserted_spec_post(F,Arity,Module,_,PostSpec,_,_),PostSpecs),
     findall(
         PreSpecType,
-        plspec:asserted_spec_pre(Module:F/Arity,PreSpec, PreSpecType),
+        plspec:asserted_spec_pre(F,Arity,Module,PreSpec, PreSpecType),
         PreSpecTypes),
     findall(
         InvSpecType,
@@ -121,11 +121,11 @@ expandeur(':-'(A, B), Module, ':-'(NA, NB)) :-
         InvSpecTypes),
     findall(
         PreSpec2Type,
-        plspec:asserted_spec_post(Module:F/Arity,PreSpec2,_,PreSpec2Type,_),
+        plspec:asserted_spec_post(F,Arity,Module,PreSpec2,_,PreSpec2Type,_),
         PrePostSpecTypes),
     findall(
         PostSpecType,
-        plspec:asserted_spec_post(Module:F/Arity,_,PostSpec,_,PostSpecType),
+        plspec:asserted_spec_post(F,Arity,Module,_,PostSpec,_,PostSpecType),
         PostSpecTypes),
     expansion(
         A,

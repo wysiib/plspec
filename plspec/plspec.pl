@@ -7,8 +7,8 @@
           plspec_some/3, error_not_matching_any_pre/3,
           enable_spec_check/1, enable_all_spec_checks/0,
           set_error_handler/1,
-          asserted_spec_pre/3, asserted_spec_invariant/3,
-          asserted_spec_invariant/4, asserted_spec_post/5,
+          asserted_spec_pre/5, asserted_spec_invariant/3,
+          asserted_spec_invariant/4, asserted_spec_post/7,
           check_predicate/1 % called by term expander
          ]).
 
@@ -19,8 +19,8 @@
 :- use_module(library(lists)).
 :- use_module(library(terms), [variant/2]).
 
-:- dynamic asserted_spec_pre/3, asserted_spec_invariant/3,
-asserted_spec_invariant/4, asserted_spec_post/5.
+:- dynamic asserted_spec_pre/5, asserted_spec_invariant/3,
+asserted_spec_invariant/4, asserted_spec_post/7.
 
 %% set up facts
 
@@ -45,12 +45,12 @@ check_arity(Pred, Spec, SpecType, Arity) :-
 
 spec_pre(Pred,PreSpec) :-
     check_ground(Pred, PreSpec, 'pre specs'),
-    (Pred = _:_/Arity),
+    Pred = Module:Functor/Arity,
     check_arity(Pred, PreSpec, 'A pre spec', Arity),
     (ground(PreSpec) ->
-        assert(asserted_spec_pre(Pred,PreSpec,def))
+        assert(asserted_spec_pre(Functor,Arity,Module,PreSpec,def))
     ;
-        assert(asserted_spec_pre(Pred,PreSpec,any))),
+        assert(asserted_spec_pre(Functor,Arity,Module,PreSpec,any))),
     log(debug,'Asserted spec pre for ~w.',[Pred]).
 
 spec_invariant(Pred, InvariantSpec) :-
@@ -58,12 +58,12 @@ spec_invariant(Pred, InvariantSpec) :-
     Pred = _:_/Arity,
     check_arity(Pred, InvariantSpec, 'An invariant spec', Arity),
     (ground(InvariantSpec) ->
-        (maplist(named_spec, InvariantSpec, Names, Specs) ->
+        (maplist(plspec:named_spec, InvariantSpec, Names, Specs) ->
             assert(asserted_spec_invariant(Pred, Names, Specs, def))
         ;
             assert(asserted_spec_invariant(Pred, InvariantSpec, def)))
     ;
-        (maplist(named_spec, InvariantSpec, Names, Specs) ->
+        (maplist(plspec:named_spec, InvariantSpec, Names, Specs) ->
             assert(asserted_spec_invariant(Pred, Names, Specs, any))
         ;
             assert(asserted_spec_invariant(Pred, InvariantSpec, any)))),
@@ -72,19 +72,19 @@ spec_invariant(Pred, InvariantSpec) :-
 spec_post(Pred,PreSpec,PostSpec) :-
     check_ground(Pred, PreSpec, 'post-specs'),
     check_ground(Pred, PostSpec, 'post-specs'),
-    Pred = _:_/Arity,
+    Pred = Module:F/Arity,
     check_arity(Pred, PreSpec, 'A post spec (precondition)', Arity),
     check_arity(Pred, PostSpec, 'A post spec (postcondition)', Arity),
     (ground(PreSpec) ->
         (ground(PostSpec) ->
-            assert(asserted_spec_post(Pred,PreSpec,PostSpec,def,def))
+            assert(asserted_spec_post(F,Arity,Module,PreSpec,PostSpec,def,def))
         ;
-            assert(asserted_spec_post(Pred,PreSpec,PostSpec,def,any)))
+            assert(asserted_spec_post(F,Arity,Module,PreSpec,PostSpec,def,any)))
     ;
         (ground(PostSpec) ->
-            assert(asserted_spec_post(Pred,PreSpec,PostSpec,any,def))
+            assert(asserted_spec_post(F,Arity,Module,PreSpec,PostSpec,any,def))
         ;
-            assert(asserted_spec_post(Pred,PreSpec,PostSpec,any,any)))),
+            assert(asserted_spec_post(F,Arity,Module,PreSpec,PostSpec,any,any)))),
     log(debug,'Asserted spec post for ~w.',[Pred]).
 
 log_spec_already_exists(SpecId, ExistingDefinition, NewDefinition) :-
@@ -154,11 +154,15 @@ defspec_connective(SpecId, Predicate, MergePred, MergePredInvariant) :-
 :- dynamic check_predicate/1.
 enable_spec_check([H|T]) :- !,
     maplist(enable_spec_check, [H|T]).
-enable_spec_check(X) :-
-    log(info, 'Spec check enabled for ~w.',[X]),
+enable_spec_check(F/N) :-
+    log(info, 'Spec check enabled for ~w/~w.',[F/N]),
+    functor(X,F,N),
     assert(check_predicate(X)).
+enable_spec_check(X) :-
+    log(error, 'Spec check cannot be enabled for ~w use Functor/Arity syntax!',[X]).
 
 enable_all_spec_checks :-
+    retractall(check_predicate(_)),
     assert(check_predicate(_)).
 
 
