@@ -85,7 +85,7 @@ In the example, we can see `spec_post(member/2,[any,var],[any,list(any)]).`.
 The promise you make here is that if the second argument was a variable and `member/2` succeeds, the second variable will become a list. Otherwise, you guessed it, you get an exception.
 
 
-### built-ins specs
+### built-in specs
 
 We have implemented a few specs:
 
