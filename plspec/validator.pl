@@ -60,7 +60,6 @@ valid(Type, Spec, Val) :-
     ground(Spec),
     evaluate_spec_match(Spec, Type, Val, Success),
     Success == true, !.
-
 valid(Type, Spec, Val) :-
     \+ ground(Spec),
     evaluate_spec_match(Spec, Type, Val, Success),
@@ -70,19 +69,17 @@ valid(Spec, Val) :-
     ground(Spec),
     evaluate_spec_match(Spec, def, Val, Success),
     Success == true, !.
-
 valid(Spec, Val) :-
     \+ ground(Spec),
     evaluate_spec_match(Spec, any, Val, Success),
     Success == true.
 
 
-% checks, if the spec exists.If no, fail, if yes, call evaluate_spec_match_aux
+% checks, if the spec exists. If no, fail, if yes, call evaluate_spec_match_aux
 evaluate_spec_match(Spec, _Type, _, fail(spec_not_found(spec(Spec)))) :-
     nonvar(Spec),
     \+ spec_exists(Spec), !,
     log(warning,'spec ~w not found~n', [Spec]).
-
 evaluate_spec_match(Spec, Type, Val, Res) :-
     evaluate_spec_match_case(Spec, Type,Val, Res).
 
