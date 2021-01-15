@@ -93,7 +93,7 @@ log_spec_already_exists(SpecId, ExistingDefinition, NewDefinition) :-
     ;
         log(warning,'spec ~w already exists, will not be redefined~n', [SpecId])).
 
-:- meta_predicate defspec_pred(+, 1).
+:- meta_predicate defspec(+, 1).
 defspec(SpecId, OtherSpec) :-
     (spec_exists(SpecId, Existing) ->
     %% we use variant in order to determine whether it is actually the same spec;
